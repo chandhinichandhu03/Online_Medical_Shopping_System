@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+{% block title %}Delivery Route Optimizer - MediCart{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h1 class="display-6 fw-bold text-primary"><i class="fas fa-route me-2"></i>Delivery Route Optimization</h1>
+        <p class="lead text-muted">Real-time route pathfinding solver. Dijkstra's algorithm computes the shortest transit path from the warehouse to your location.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- Interactive Optimization Canvas -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg position-relative overflow-hidden">
+                <div class="card-header bg-dark text-white p-3 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold"><i class="fas fa-truck-loading me-2 text-primary"></i>Dijkstra Path Solver</span>
+                    <button onclick="runDijkstra()" class="btn btn-sm btn-primary rounded-pill px-3"><i class="fas fa-play me-1"></i>Find Optimal Path</button>
+                </div>
+                <div class="card-body p-0 bg-dark position-relative" style="height: 500px;">
+                    <canvas id="routeCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                    
+                    <!-- Control overlay -->
+                    <div class="position-absolute bottom-0 start-0 m-3 p-3 bg-dark-subtle text-white rounded small" style="backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1);">
+                        <div class="d-flex align-items-center gap-2 mb-1"><span class="bg-success rounded-circle" style="width:12px; height:12px; display:inline-block;"></span> <span>Warehouse (Start)</span></div>
+                        <div class="d-flex align-items-center gap-2 mb-1"><span class="bg-danger rounded-circle" style="width:12px; height:12px; display:inline-block;"></span> <span>Your Address (End)</span></div>
+                        <div class="d-flex align-items-center gap-2"><span class="bg-primary rounded-circle" style="width:12px; height:12px; display:inline-block;"></span> <span>Optimal Dispatch Node</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Information & Log -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-lg h-100">
+                <div class="card-header bg-primary text-white p-3 fw-bold">
+                    <i class="fas fa-list-ol me-2"></i>Routing Log Metrics
+                </div>
+                <div class="card-body p-4" id="logBox">
+                    <h5 class="fw-bold mb-3">Order Details</h5>
+                    <p class="small mb-1"><strong>Order ID:</strong> #{{ order.id }}</p>
+                    <p class="small mb-1"><strong>Recipient:</strong> {{ order.user.username }}</p>
+                    <p class="small mb-3"><strong>Destination:</strong> {{ order.address }}</p>
+                    
+                    <hr>
+                    
+                    <h6 class="fw-bold text-secondary mb-2">Shortest Path Output:</h6>
+                    <div id="pathResult" class="p-3 bg-light border rounded font-monospace small mb-3">
+                        Click "Find Optimal Path" to compute route.
+                    </div>
+                    
+                    <div id="distanceResult" class="fw-bold text-success fs-5">
+                        <!-- Total Distance will display here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('routeCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    
+    // Graph Nodes representing points in local area
+    const nodes = [
+        { id: 'Warehouse', label: 'Warehouse', x: 80, y: 150, role: 'start' },
+        { id: 'Node A', label: 'Hub A', x: 220, y: 100, role: 'hub' },
+        { id: 'Node B', label: 'Hub B', x: 200, y: 280, role: 'hub' },
+        { id: 'Node C', label: 'Hub C', x: 380, y: 120, role: 'hub' },
+        { id: 'Node D', label: 'Hub D', x: 350, y: 350, role: 'hub' },
+        { id: 'Node E', label: 'Hub E', x: 500, y: 220, role: 'hub' },
+        { id: 'Destination', label: 'Destination', x: 620, y: 300, role: 'end' }
+    ];
+    
+    // Edges with weights representing distance in km
+    const edges = [
+        { source: 'Warehouse', target: 'Node A', weight: 4 },
+        { source: 'Warehouse', target: 'Node B', weight: 6 },
+        { source: 'Node A', target: 'Node C', weight: 5 },
+        { source: 'Node A', target: 'Node B', weight: 2 },
+        { source: 'Node B', target: 'Node D', weight: 7 },
+        { source: 'Node C', target: 'Node E', weight: 3 },
+        { source: 'Node D', target: 'Node E', weight: 4 },
+        { source: 'Node C', target: 'Node D', weight: 4 },
+        { source: 'Node E', target: 'Destination', weight: 5 },
+        { source: 'Node D', target: 'Destination', weight: 9 }
+    ];
+    
+    let optimalPath = [];
+    let pathDrawProgress = 0;
+    let isRunning = false;
+    
+    function resize() {
+        width = canvas.clientWidth;
+        height = canvas.clientHeight;
+        canvas.width = width;
+        canvas.height = height;
+        drawGraph();
+    }
+    window.addEventListener('resize', resize);
+    
+    function drawGraph() {
+        ctx.clearRect(0, 0, width, height);
+        
+        // Draw Edges
+        edges.forEach(e => {
+            let n1 = nodes.find(n => n.id === e.source);
+            let n2 = nodes.find(n => n.id === e.target);
+            if (n1 && n2) {
+                // Check if this edge is in the optimal path
+                let isOptimal = false;
+                if (optimalPath.length > 0) {
+                    for (let i = 0; i < optimalPath.length - 1; i++) {
+                        if ((optimalPath[i] === n1.id && optimalPath[i+1] === n2.id) ||
+                            (optimalPath[i] === n2.id && optimalPath[i+1] === n1.id)) {
+                            isOptimal = true;
+                            break;
+                        }
+                    }
+                }
+                
+                ctx.beginPath();
+                ctx.moveTo(n1.x, n1.y);
+                ctx.lineTo(n2.x, n2.y);
+                ctx.strokeStyle = isOptimal ? '#7b2cbf' : '#3d3d3d';
+                ctx.lineWidth = isOptimal ? 5 : 2;
+                ctx.stroke();
+                
+                // Draw Weight text label
+                let midX = (n1.x + n2.x) / 2;
+                let midY = (n1.y + n2.y) / 2;
+                ctx.fillStyle = '#888888';
+                ctx.font = '11px monospace';
+                ctx.fillText(e.weight + ' km', midX + 5, midY - 5);
+            }
+        });
+        
+        // Draw Nodes
+        nodes.forEach(n => {
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, 16, 0, Math.PI * 2);
+            
+            if (n.role === 'start') ctx.fillStyle = '#28a745'; // Warehouse Green
+            else if (n.role === 'end') ctx.fillStyle = '#dc3545'; // Destination Red
+            else {
+                // Check if part of optimal path
+                ctx.fillStyle = optimalPath.includes(n.id) ? '#7b2cbf' : '#495057';
+            }
+            
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(n.label, n.x, n.y - 20);
+        });
+        
+        // Pulsing delivery rider/arrow if optimal path exists
+        if (optimalPath.length > 0 && pathDrawProgress < 1) {
+            pathDrawProgress += 0.005;
+            if (pathDrawProgress > 1) pathDrawProgress = 1;
+            drawRunner();
+        } else if (optimalPath.length > 0) {
+            drawRunner();
+        }
+    }
+    
+    function drawRunner() {
+        // Draw a pulse following the optimal path nodes
+        let totalPathLength = optimalPath.length - 1;
+        let segmentIndex = Math.floor(pathDrawProgress * totalPathLength);
+        if (segmentIndex >= totalPathLength) segmentIndex = totalPathLength - 1;
+        
+        let startNode = nodes.find(n => n.id === optimalPath[segmentIndex]);
+        let endNode = nodes.find(n => n.id === optimalPath[segmentIndex + 1]);
+        
+        if (startNode && endNode) {
+            let segPercent = (pathDrawProgress * totalPathLength) - segmentIndex;
+            let currentX = startNode.x + (endNode.x - startNode.x) * segPercent;
+            let currentY = startNode.y + (endNode.y - startNode.y) * segPercent;
+            
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#00f2fe';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00f2fe';
+            ctx.fill();
+            ctx.shadowBlur = 0; // reset
+        }
+    }
+    
+    // Quick Dijkstra pathfinding implementation in JS
+    function runDijkstra() {
+        if (isRunning) return;
+        isRunning = true;
+        
+        // Adjacency Graph building
+        const graph = {};
+        nodes.forEach(n => graph[n.id] = {});
+        edges.forEach(e => {
+            graph[e.source][e.target] = e.weight;
+            graph[e.target][e.source] = e.weight;
+        });
+        
+        const start = 'Warehouse';
+        const end = 'Destination';
+        
+        const distances = {};
+        const prev = {};
+        const unvisited = new Set();
+        
+        nodes.forEach(n => {
+            distances[n.id] = Infinity;
+            prev[n.id] = null;
+            unvisited.add(n.id);
+        });
+        distances[start] = 0;
+        
+        while (unvisited.size > 0) {
+            // Find closest unvisited node
+            let minNode = null;
+            unvisited.forEach(node => {
+                if (minNode === null || distances[node] < distances[minNode]) {
+                    minNode = node;
+                }
+            });
+            
+            if (distances[minNode] === Infinity || minNode === end) break;
+            
+            unvisited.delete(minNode);
+            
+            for (let neighbor in graph[minNode]) {
+                let alt = distances[minNode] + graph[minNode][neighbor];
+                if (alt < distances[neighbor]) {
+                    distances[neighbor] = alt;
+                    prev[neighbor] = minNode;
+                }
+            }
+        }
+        
+        // Reconstruct path
+        let path = [];
+        let curr = end;
+        while (curr) {
+            path.unshift(curr);
+            curr = prev[curr];
+        }
+        
+        optimalPath = path;
+        pathDrawProgress = 0;
+        
+        // Render outputs
+        document.getElementById('pathResult').innerHTML = path.join(' &rarr; ');
+        document.getElementById('distanceResult').innerHTML = `<i class="fas fa-hourglass-start me-2"></i>Total Distance: ${distances[end]} km`;
+        
+        // Animate loop
+        function animate() {
+            drawGraph();
+            if (pathDrawProgress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                isRunning = false;
+            }
+        }
+        animate();
+    }
+    
+    // Init
+    setTimeout(resize, 100);
+</script>
+{% endblock %}

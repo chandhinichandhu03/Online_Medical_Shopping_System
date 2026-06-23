@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Symptom Checker - MediCart{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="text-center mb-5">
+            <h1 class="display-5 fw-bold text-primary"><i class="fas fa-user-md me-2"></i>AI Symptom Checker</h1>
+            <p class="lead text-muted">A smart tool to analyze your symptoms and provide general health insights.</p>
+        </div>
+
+        <div class="card shadow border-0 mb-5">
+            <div class="card-body p-4 p-md-5">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Age</label>
+                            <input type="number" name="age" class="form-control" required placeholder="e.g. 25">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Gender</label>
+                            <select name="gender" class="form-select" required>
+                                <option value="">Select...</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Describe your symptoms</label>
+                            <textarea name="symptoms" class="form-control" rows="4"
+                                placeholder="e.g. I have a headache and mild fever since yesterday..."
+                                required></textarea>
+                            <div class="form-text">Try to be specific about what you are feeling.</div>
+                        </div>
+                        <div class="col-12 mt-4">
+                            <button type="submit" class="btn btn-primary w-100 btn-lg">Analyze Symptoms</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if result %}
+        <div class="card bg-light border-0 shadow-sm" id="results">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-end mb-3 no-print">
+                    <button onclick="downloadPDF()" class="btn btn-outline-danger btn-sm"><i
+                            class="fas fa-file-pdf me-2"></i>Download Report</button>
+                </div>
+                {% if result.error %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>{{ result.error }}
+                </div>
+                {% else %}
+                <h3 class="card-title text-success mb-3"><i class="fas fa-clipboard-check me-2"></i>Analysis Results
+                </h3>
+
+                <div class="mb-4">
+                    <h5>Possible Conditions:</h5>
+                    <ul class="list-group">
+                        {% for condition in result.conditions %}
+                        <li class="list-group-item list-group-item-action">{{ condition }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="mb-4">
+                    <h5><i class="fas fa-notes-medical text-primary me-2"></i>Recommendation:</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for tip in result.advice %}
+                        <li class="list-group-item bg-transparent"><i class="fas fa-check text-success me-2"></i>{{ tip }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                {% if result.remedies %}
+                <div class="mb-4">
+                    <h5><i class="fas fa-home text-warning me-2"></i>Home Remedies:</h5>
+                    <ul class="list-group list-group-flush">
+                        {% for item in result.remedies %}
+                        <li class="list-group-item bg-transparent"><i class="fas fa-leaf text-success me-2"></i>{{ item }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if result.medicines %}
+                <div class="mb-4">
+                    <h5><i class="fas fa-pills text-danger me-2"></i>Suggested Medicines (OTC):</h5>
+                    <div class="row g-2">
+                        {% for med in result.medicines %}
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded bg-white h-100">
+                                <div class="fw-bold text-primary">{{ med.name }}</div>
+                                <div class="small text-muted">{{ med.reason }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="alert alert-warning mt-4">
+                    <strong><i class="fas fa-exclamation-triangle me-2"></i>Disclaimer:</strong> {{ result.disclaimer }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    function downloadPDF() {
+        const element = document.getElementById('results');
+        const button = document.querySelector('.no-print');
+
+        // Hide button for PDF
+        button.style.display = 'none';
+
+        const opt = {
+            margin: 0.5,
+            filename: 'MediCart_Health_Report.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            // Show button again
+            button.style.display = 'block';
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Emergency Services - MediCart{% endblock %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-12 text-center">
+        <h1 class="display-4 fw-bold text-danger mb-3"><i class="fas fa-ambulance me-3"></i>Emergency Services</h1>
+        <p class="lead text-muted">Immediate assistance for medical emergencies.</p>
+    </div>
+</div>
+
+<div class="row align-items-center mb-5">
+    <div class="col-md-6 text-center">
+        <div class="card border-0 shadow-lg bg-danger text-white overflow-hidden p-5">
+            <h2 class="fw-bold mb-4">In Case of Emergency</h2>
+            <div class="display-1 fw-bold mb-4">
+                <i class="fas fa-phone-alt me-3"></i>108
+            </div>
+            <p class="fs-4 mb-4">National Ambulance Service (India)</p>
+            <a href="tel:108" class="btn btn-light btn-lg rounded-pill fw-bold text-danger px-5 py-3 shadow">
+                <i class="fas fa-phone me-2"></i>Call Ambulance Now
+            </a>
+        </div>
+    </div>
+    <div class="col-md-6 mt-4 mt-md-0">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <h4 class="fw-bold mb-3 text-primary"><i class="fas fa-first-aid me-2"></i>Quick Actions</h4>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <h6 class="mb-0 fw-bold">Police Control Room</h6>
+                            <small class="text-muted">For accidents and legal emergencies</small>
+                        </div>
+                        <a href="tel:100" class="btn btn-outline-secondary rounded-pill btn-sm fw-bold">Call 100</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <h6 class="mb-0 fw-bold">Fire Brigade</h6>
+                            <small class="text-muted">For fire hazards</small>
+                        </div>
+                        <a href="tel:101" class="btn btn-outline-secondary rounded-pill btn-sm fw-bold">Call 101</a>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div>
+                            <h6 class="mb-0 fw-bold">Women Helpline</h6>
+                            <small class="text-muted">Domestic abuse & safety</small>
+                        </div>
+                        <a href="tel:1091" class="btn btn-outline-secondary rounded-pill btn-sm fw-bold">Call 1091</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center flex-wrap">
+                <h4 class="fw-bold mb-0 text-primary"><i class="fas fa-map-marked-alt me-2"></i>Nearby Medical Services
+                </h4>
+                <div class="input-group w-auto mt-2 mt-md-0">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="locationInput" class="form-control border-start-0"
+                        placeholder="Enter City/Area..." value="hospitals near me">
+                    <button class="btn btn-primary" onclick="updateMap()">Search</button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="ratio ratio-21x9">
+                    <iframe id="mapFrame"
+                        src="https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d248849.84916296515!2d77.46491763953535!3d12.95399748722741!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1shospitals%20and%20pharmacies%20near%20me!5e0!3m2!1sen!2sin!4v1706456789012!5m2!1sen!2sin"
+                        style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateMap() {
+        const query = document.getElementById('locationInput').value;
+        const mapFrame = document.getElementById('mapFrame');
+        if (query) {
+            const newSrc = `https://www.google.com/maps?q=${encodeURIComponent(query + " hospitals pharmacies")}&output=embed`;
+            mapFrame.src = newSrc;
+        }
+    }
+</script>
+{% endblock %}

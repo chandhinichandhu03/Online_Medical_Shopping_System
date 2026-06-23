@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Detail: {{ medicine.name }} - MediCart{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-lg overflow-hidden mb-5" style="border-radius: 24px;">
+    <div class="row g-0">
+        <!-- Image Box -->
+        <div class="col-md-5 bg-light d-flex align-items-center justify-content-center p-5 position-relative">
+            {% if medicine.image %}
+            <img src="{{ medicine.image.url }}" class="img-fluid rounded shadow bg-white p-2"
+                alt="{{ medicine.name }}" style="max-height: 350px; object-fit: contain;">
+            {% else %}
+            <i class="fas fa-pills display-1 text-muted opacity-25"></i>
+            {% endif %}
+            
+            <!-- Floating Save Wishlist heart -->
+            <a href="{% url 'wishlist_toggle' medicine.id %}" class="btn btn-light rounded-circle shadow position-absolute top-0 end-0 m-4 text-danger fs-5" style="width: 45px; height: 45px; padding: 8px;">
+                <i class="{% if is_in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
+            </a>
+        </div>
+        
+        <!-- Info Content -->
+        <div class="col-md-7">
+            <div class="card-body p-4 p-lg-5">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill">{{ medicine.category.name }}</span>
+                    {% if medicine.is_prescription_required %}
+                    <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill"><i class="fas fa-file-prescription me-1"></i>Prescription Required</span>
+                    {% else %}
+                    <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill"><i class="fas fa-check-circle me-1"></i>OTC Approved</span>
+                    {% endif %}
+                    
+                    {% if price_surged %}
+                    <span class="badge bg-warning-subtle text-warning-emphasis px-3 py-2 rounded-pill" title="Price adjusted based on demand trends and supply scarcity.">
+                        <i class="fas fa-bolt me-1"></i>Surge Pricing Active
+                    </span>
+                    {% endif %}
+                </div>
+
+                <h1 class="display-6 fw-bold mb-1">{{ medicine.name }}</h1>
+                <p class="text-muted fs-5 mb-1">Brand: <strong>{{ medicine.brand_name }}</strong></p>
+                <p class="small text-secondary mb-4">Generic Formula: <span class="text-primary font-monospace">{{ medicine.generic_name|default:"Not Logged" }}</span></p>
+
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <h2 class="text-success fw-bold mb-0">₹{{ medicine.price }}</h2>
+                    {% if price_surged %}
+                    <span class="text-muted text-decoration-line-through small">₹{{ medicine.original_price }}</span>
+                    {% endif %}
+                </div>
+
+                <p class="lead text-secondary mb-4 small">{{ medicine.description }}</p>
+
+                <!-- Technical inventory meta -->
+                <div class="row g-2 mb-4 text-center">
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded bg-light">
+                            <i class="fas fa-boxes text-muted mb-1 d-block"></i>
+                            <span class="small text-muted d-block">Available Stock</span>
+                            <span class="fw-bold {% if medicine.stock > 15 %}text-success{% else %}text-danger{% endif %}">{{ medicine.stock }} Units</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded bg-light">
+                            <i class="fas fa-calendar-alt text-muted mb-1 d-block"></i>
+                            <span class="small text-muted d-block">Expiry Date</span>
+                            <span class="fw-bold text-dark">{{ medicine.expiry_date }}</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="p-3 border rounded bg-light">
+                            <i class="fas fa-map-marker-alt text-muted mb-1 d-block"></i>
+                            <span class="small text-muted d-block">Warehouse Location</span>
+                            <span class="fw-bold text-dark small">{{ medicine.warehouse_location }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add to cart -->
+                {% if medicine.stock > 0 %}
+                <form action="{% url 'add_to_cart' medicine.pk %}" method="post" class="d-flex flex-wrap align-items-center gap-3 mt-4">
+                    {% csrf_token %}
+                    <div class="input-group" style="width: 140px;">
+                        <button class="btn btn-outline-secondary" type="button"
+                            onclick="this.parentNode.querySelector('input[type=number]').stepDown()">-</button>
+                        <input type="number" name="quantity" class="form-control text-center border-secondary fw-bold" value="1"
+                            min="1" max="{{ medicine.stock }}">
+                        <button class="btn btn-outline-secondary" type="button"
+                            onclick="this.parentNode.querySelector('input[type=number]').stepUp()">+</button>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5 flex-grow-1 shadow">
+                        <i class="fas fa-cart-plus me-2"></i>Add to Cart
+                    </button>
+                    
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'subscribe_medicine' medicine.id %}" class="btn btn-outline-primary btn-lg rounded-pill px-4">
+                        <i class="fas fa-redo me-1"></i>Subscribe & Save
+                    </a>
+                    {% endif %}
+                </form>
+                {% else %}
+                <button class="btn btn-secondary btn-lg w-100 rounded-pill disabled" disabled>Out of Stock</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Smart Substitutes & Bundles Sections -->
+<div class="row g-4 mb-5">
+    <!-- Generic substitute listings (cheaper matches) -->
+    {% if generic_substitutes %}
+    <div class="col-md-6">
+        <div class="card border-0 shadow-lg h-100" style="border-radius: 20px;">
+            <div class="card-header bg-success text-white p-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-hand-holding-usd me-2"></i>Cheaper Generic Substitutes</h5>
+                <p class="mb-0 small opacity-75">Save money by buying medicines containing identical active ingredients.</p>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for sub in generic_substitutes %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div>
+                            <span class="fw-bold text-dark d-block">{{ sub.name }}</span>
+                            <small class="text-muted">Brand: {{ sub.brand_name }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-success fw-bold d-block fs-5">₹{{ sub.price }}</span>
+                            <a href="{% url 'medicine_detail' sub.id %}" class="btn btn-xs btn-outline-success rounded-pill px-2 py-1 small" style="font-size: 11px;">Switch</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Frequently Bought Together package bundles -->
+    {% if package_suggestions %}
+    <div class="col-md-6">
+        <div class="card border-0 shadow-lg h-100" style="border-radius: 20px;">
+            <div class="card-header bg-primary text-white p-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-cubes me-2"></i>Frequently Bought Together Bundle</h5>
+                <p class="mb-0 small opacity-75">Common items ordered along with this medicine for recovery wellness.</p>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for pkg in package_suggestions %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-plus text-muted me-3"></i>
+                            <div>
+                                <span class="fw-bold text-dark d-block">{{ pkg.name }}</span>
+                                <small class="text-muted">{{ pkg.brand_name }}</small>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-primary fw-bold d-block fs-5">₹{{ pkg.price }}</span>
+                            <a href="{% url 'medicine_detail' pkg.id %}" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-1 small" style="font-size: 11px;">View</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

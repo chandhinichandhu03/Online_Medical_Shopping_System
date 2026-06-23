@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Handwritten Prescription OCR - MediCart{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <div class="text-center mb-4">
+            <h1 class="display-6 fw-bold text-primary"><i class="fas fa-file-prescription me-2"></i>Handwritten Prescription Scanner</h1>
+            <p class="lead text-muted">Upload your digital or handwritten prescription. Our AI Vision OCR reads the list, identifies ingredients, and matches items in our inventory.</p>
+        </div>
+
+        <div class="card border-0 shadow-lg mb-4">
+            <div class="card-body p-4 p-md-5">
+                <form method="post" enctype="multipart/form-data" class="text-center">
+                    {% csrf_token %}
+                    <div class="mb-4 p-4 border border-2 border-dashed rounded-3 bg-light position-relative">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                        <h5 class="fw-bold">Drag and drop or browse your prescription</h5>
+                        <p class="text-muted small">Supports JPG, PNG, or PDF formats</p>
+                        <input type="file" name="prescription" class="form-control" accept="image/*,application/pdf" required style="max-width: 400px; margin: 0 auto;">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5 shadow">
+                        <i class="fas fa-search-plus me-2"></i>Scan and Analyze Prescription
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-danger shadow-sm border-0 rounded-3 mb-4">
+            <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+        </div>
+        {% endif %}
+
+        {% if extracted %}
+        <div class="card border-0 shadow-lg mb-5">
+            <div class="card-header bg-success text-white p-4">
+                <h4 class="mb-0 fw-bold"><i class="fas fa-notes-medical me-2"></i>Scanned Prescription Matches</h4>
+                <p class="mb-0 small opacity-75">Click on medicines below to view or purchase them.</p>
+            </div>
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Extracted Name</th>
+                                <th>Store Match Status</th>
+                                <th>Matched Medicine</th>
+                                <th>Price</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in extracted %}
+                            <tr>
+                                <td>
+                                    <span class="fw-bold text-dark">{{ item.extracted_name }}</span>
+                                </td>
+                                <td>
+                                    {% if item.matched %}
+                                    <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill"><i class="fas fa-check-circle me-1"></i>Found in Stock</span>
+                                    {% else %}
+                                    <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill"><i class="fas fa-times-circle me-1"></i>Unavailable</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="text-muted">{{ item.medicine_name }}</span>
+                                </td>
+                                <td>
+                                    {% if item.price %}
+                                    <span class="fw-bold text-primary">₹{{ item.price }}</span>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.matched %}
+                                    <a href="{% url 'medicine_detail' item.medicine_id %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                        <i class="fas fa-shopping-cart me-1"></i>View Details
+                                    </a>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-secondary rounded-pill px-3" disabled>
+                                        <i class="fas fa-ban me-1"></i>Cannot Buy
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="alert alert-info border-0 rounded-3 mt-3 d-flex align-items-center">
+                    <i class="fas fa-info-circle fa-2x me-3 text-info"></i>
+                    <div>
+                        <strong>Notice:</strong> Prescribed items marked as <em>Prescription REQUIRED</em> will still require you to upload this prescription file during checkout.
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

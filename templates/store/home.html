@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section mb-5 shadow-sm">
+    <div class="row align-items-center">
+        <div class="col-lg-6">
+            {% if thought_text %}
+            <span
+                class="badge bg-white text-primary mb-3 shadow-none border border-primary-subtle px-3 py-2 rounded-pill">
+                <i class="fas fa-lightbulb me-2"></i>{{ thought_text }}
+            </span>
+            {% endif %}
+            <h1 class="display-4 fw-bold mb-3">Your Health, <br><span class="text-primary">Delivered.</span></h1>
+            <p class="lead text-muted mb-4">Order authentic medicines, supplements, and healthcare products with ease.
+                Now serving Pet care and First Aid needs.</p>
+            <div class="d-flex gap-2">
+                <a href="{% url 'medicine_list' %}" class="btn btn-primary btn-lg rounded-pill px-4 shadow">Shop
+                    Medicines</a>
+                <a href="{% url 'symptom_checker' %}" class="btn btn-outline-primary btn-lg rounded-pill px-4">AI
+                    Symptom Check</a>
+            </div>
+        </div>
+        <div class="col-lg-6 text-center d-none d-lg-block">
+            <img src="https://img.freepik.com/free-vector/health-professional-team-concept-illustration_114360-1618.jpg?w=740"
+                alt="Medical Illustration" class="img-fluid" style="max-height: 400px; mix-blend-mode: multiply;">
+        </div>
+    </div>
+</div>
+
+<!-- Category Quick Links -->
+<div class="d-flex justify-content-center flex-wrap gap-3 mb-5">
+    <a href="{% url 'medicine_list' %}?q=Tablet" class="category-pill"><i class="fas fa-pills me-2"></i>Tablets</a>
+    <a href="{% url 'medicine_list' %}?q=Syrup" class="category-pill"><i
+            class="fas fa-prescription-bottle me-2"></i>Syrups</a>
+    <a href="{% url 'medicine_list' %}?q=Ointment" class="category-pill"><i
+            class="fas fa-pump-soap me-2"></i>Ointments</a>
+    <a href="{% url 'medicine_list' %}?q=First Aid" class="category-pill"><i
+            class="fas fa-briefcase-medical me-2"></i>First Aid</a>
+    <a href="{% url 'medicine_list' %}?q=Pet" class="category-pill"><i class="fas fa-dog me-2"></i>Pet Care</a>
+    <a href="{% url 'medicine_list' %}?q=Syringes" class="category-pill"><i class="fas fa-syringe me-2"></i>Syringes</a>
+</div>
+
+<!-- Featured Section -->
+<div class="section-title text-center">
+    <h2>Featured Products</h2>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
+    {% for medicine in featured_medicines %}
+    <div class="col">
+        <div class="card h-100 border-0">
+            <div class="card-img-top text-center p-4 bg-light position-relative">
+                {% if medicine.image %}
+                <img src="{{ medicine.image.url }}" class="img-fluid" alt="{{ medicine.name }}"
+                    style="height: 150px; object-fit: contain;">
+                {% else %}
+                <i class="fas fa-pills fa-4x text-muted opacity-25"></i>
+                {% endif %}
+                <span class="badge bg-white text-dark shadow-sm position-absolute top-0 start-0 m-3">{{
+                    medicine.category.name }}</span>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-dark">{{ medicine.name }}</h5>
+                <p class="small text-muted mb-2">{{ medicine.brand_name }}</p>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <h5 class="mb-0 text-primary fw-bold">₹{{ medicine.price }}</h5>
+                    <a href="{% url 'medicine_detail' medicine.pk %}"
+                        class="btn btn-sm btn-outline-primary rounded-circle"
+                        style="width: 35px; height: 35px; padding: 6px;"><i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center text-muted">No medicines added yet.</div>
+    {% endfor %}
+</div>
+
+<!-- Pet Care Banner -->
+<div class="card border-0 bg-secondary text-white mb-5 overflow-hidden shadow-lg"
+    style="background: linear-gradient(45deg, #0077b6, #00b4d8);">
+    <div class="card-body p-5">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="fw-bold mb-3"><i class="fas fa-paw me-2"></i>New: Pet Care Section</h2>
+                <p class="fs-5 opacity-75">We now stock essential medicines and supplements for your furry friends. From
+                    vitamins to first aid, get everything delivered.</p>
+                <a href="{% url 'medicine_list' %}?q=Pet"
+                    class="btn btn-light text-primary fw-bold rounded-pill mt-3 px-4">Shop Pet Care</a>
+            </div>
+            <div class="col-md-4 text-center d-none d-md-block">
+                <i class="fas fa-cat fa-8x opacity-25"></i>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Stats Section -->
+<div class="row mb-5 text-center">
+    <div class="col-md-3 col-6 mb-4">
+        <div class="p-4 bg-white rounded-3 shadow-sm hover-up">
+            <h2 class="fw-bold text-primary display-5">10k+</h2>
+            <p class="text-muted mb-0">Products</p>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-4">
+        <div class="p-4 bg-white rounded-3 shadow-sm hover-up">
+            <h2 class="fw-bold text-primary display-5">50k+</h2>
+            <p class="text-muted mb-0">Happy Customers</p>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-4">
+        <div class="p-4 bg-white rounded-3 shadow-sm hover-up">
+            <h2 class="fw-bold text-primary display-5">100%</h2>
+            <p class="text-muted mb-0">Genuine Meds</p>
+        </div>
+    </div>
+    <div class="col-md-3 col-6 mb-4">
+        <div class="p-4 bg-white rounded-3 shadow-sm hover-up">
+            <h2 class="fw-bold text-primary display-5">24/7</h2>
+            <p class="text-muted mb-0">Expert Support</p>
+        </div>
+    </div>
+</div>
+
+<!-- Testimonials Carousel -->
+<div class="mb-5">
+    <h3 class="fw-bold text-center mb-4">What Our Users Say</h3>
+    <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+            <div class="carousel-item active text-center">
+                <div class="card border-0 shadow-sm mx-auto" style="max-width: 600px;">
+                    <div class="card-body p-4">
+                        <p class="lead fst-italic">"MediCart is a lifesaver! I ordered medicines for my parents, and
+                            they were delivered within hours. The app is so easy to use."</p>
+                        <h6 class="fw-bold text-primary">- Priya Sharma, Bangalore</h6>
+                    </div>
+                </div>
+            </div>
+            <div class="carousel-item text-center">
+                <div class="card border-0 shadow-sm mx-auto" style="max-width: 600px;">
+                    <div class="card-body p-4">
+                        <p class="lead fst-italic">"The AI Symptom Checker is surprisingly accurate. It helped me decide
+                            to see a doctor for my persistent headache. Great feature!"</p>
+                        <h6 class="fw-bold text-primary">- Rahul Verma, Mumbai</h6>
+                    </div>
+                </div>
+            </div>
+            <div class="carousel-item text-center">
+                <div class="card border-0 shadow-sm mx-auto" style="max-width: 600px;">
+                    <div class="card-body p-4">
+                        <p class="lead fst-italic">"I love the Pet Care section. It's hard to find authentic pet meds
+                            online, but MediCart has everything I need for my dog."</p>
+                        <h6 class="fw-bold text-primary">- Anjali Gupta, Delhi</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon bg-primary rounded-circle" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon bg-primary rounded-circle" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+</div>
+{% endblock %}

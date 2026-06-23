@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Authenticity Blockchain Ledger - MediCart{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h1 class="display-6 fw-bold text-primary"><i class="fas fa-cubes me-2"></i>Drug Authenticity Blockchain</h1>
+        <p class="lead text-muted">A secure cryptographic ledger verifying medicine batches and pharmacist validation events. Track anti-counterfeit logs.</p>
+    </div>
+
+    <!-- Blockchain Graph Nodes Representation -->
+    <div class="d-flex align-items-center justify-content-center flex-wrap gap-4 mb-5">
+        {% for block in blocks %}
+        <div class="card border-0 shadow text-center p-3" style="width: 140px; border-radius: 15px; border-top: 5px solid {% if block.index == 0 %}#38b000{% else %}#7b2cbf{% endif %};">
+            <span class="fw-bold d-block text-muted small">BLOCK #{{ block.index }}</span>
+            <i class="fas fa-cube fa-2x my-2 {% if block.index == 0 %}text-success{% else %}text-primary{% endif %}"></i>
+            <span class="small d-block text-truncate fw-bold">Hash: {{ block.hash|slice:":8" }}</span>
+            <span class="text-success small"><i class="fas fa-check-circle me-1"></i>Verified</span>
+        </div>
+        {% if not forloop.last %}
+        <i class="fas fa-link fa-lg text-muted"></i>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- Detailed Block Table -->
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-dark text-white p-4">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-database me-2 text-primary"></i>Distributed Cryptographic Ledger</h5>
+                </div>
+                <div class="card-body p-4">
+                    {% for block in blocks %}
+                    <div class="border rounded p-4 mb-4 bg-light position-relative">
+                        <span class="badge bg-primary position-absolute top-0 end-0 m-3 fs-6">Block #{{ block.index }}</span>
+                        <h6 class="fw-bold text-dark mb-1"><i class="far fa-clock text-primary me-2"></i>Timestamp: {{ block.timestamp }}</h6>
+                        
+                        <hr class="my-2">
+                        
+                        <div class="row g-2 small">
+                            <div class="col-12 col-md-3 font-monospace text-muted">Previous Hash:</div>
+                            <div class="col-12 col-md-9 font-monospace text-break">{{ block.previous_hash }}</div>
+                            <div class="col-12 col-md-3 font-monospace text-muted">Current Hash:</div>
+                            <div class="col-12 col-md-9 font-monospace text-break text-primary fw-bold">{{ block.hash }}</div>
+                        </div>
+
+                        <div class="mt-3 p-3 bg-white border rounded">
+                            <h6 class="fw-bold text-secondary mb-2"><i class="fas fa-file-code me-2"></i>Payload Data:</h6>
+                            <pre class="mb-0 text-dark small font-monospace" style="white-space: pre-wrap;">{{ block.data|json_script:"block-data-"|default:"" }}<script>
+                                // Print JSON cleanly
+                                try {
+                                    var dataStr = '{{ block.data|escapejs }}';
+                                    var parsed = JSON.parse(dataStr);
+                                    document.write(JSON.stringify(parsed, null, 2));
+                                } catch(e) {
+                                    document.write('{{ block.data|escapejs }}');
+                                }
+                            </script></pre>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

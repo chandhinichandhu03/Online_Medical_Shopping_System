@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}MediBot - AI Health Assistant{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+            <div class="card-header bg-primary text-white p-4 text-center">
+                <i class="fas fa-robot fa-3x mb-3 animate-bounce"></i>
+                <h3 class="fw-bold mb-0">MediBot</h3>
+                <p class="small opacity-75">Your 24/7 AI Health Assistant</p>
+            </div>
+            <div class="card-body p-4" style="background: #f8f9fa; min-height: 400px;">
+                {% if user_message %}
+                <div class="d-flex justify-content-end mb-4">
+                    <div class="bg-primary text-white p-3 rounded-3 shadow-sm"
+                        style="max-width: 80%; border-bottom-right-radius: 2px;">
+                        {{ user_message }}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if response %}
+                <div class="d-flex justify-content-start mb-4">
+                    <div class="bg-white p-4 rounded-3 shadow-sm border"
+                        style="max-width: 90%; border-bottom-left-radius: 2px;">
+                        <div class="markdown-content">
+                            {{ response|safe }}
+                        </div>
+                    </div>
+                </div>
+                {% elif error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-comment-medical fa-4x mb-3 opacity-25"></i>
+                    <h4>Welcome to MediCart Assistant</h4>
+                    <p>Ask me anything about symptoms, medicines, or healthy living!</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-white p-4">
+                <form method="post" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <input type="text" name="message" class="form-control rounded-pill px-4"
+                        placeholder="Type your health query..." required>
+                    <button type="submit" class="btn btn-primary rounded-circle shadow-sm"
+                        style="width: 50px; height: 50px;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+                <div class="text-center mt-3">
+                    <small class="text-muted"><i class="fas fa-info-circle me-1"></i>MediBot is an AI and not a
+                        doctor.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .markdown-content p:last-child {
+        margin-bottom: 0;
+    }
+
+    .animate-bounce {
+        animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+</style>
+{% endblock %}

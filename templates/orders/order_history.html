@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}My Orders - MediCart{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">My Orders</h2>
+{% if orders %}
+<div class="row">
+    {% for order in orders %}
+    <div class="col-12 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>Order #{{ order.id }}</strong>
+                    <small class="text-muted ms-2">{{ order.created_at|date:"M d, Y" }}</small>
+                </div>
+                <div>
+                    {% if order.status == 'Pending' %}
+                    <span class="badge bg-warning text-dark">{{ order.status }}</span>
+                    {% elif order.status == 'Delivered' %}
+                    <span class="badge bg-success">{{ order.status }}</span>
+                    {% else %}
+                    <span class="badge bg-secondary">{{ order.status }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-3">
+                    {% for item in order.items.all %}
+                    <li>{{ item.quantity }} x {{ item.medicine.name }} - ₹{{ item.price }}</li>
+                    {% endfor %}
+                </ul>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">Total: ₹{{ order.total_amount }}</h6>
+                    <button class="btn btn-outline-primary btn-sm" onclick="alert('Invoice PDF download simulated!')"><i
+                            class="fas fa-file-invoice me-1"></i>Download Invoice</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">You haven't placed any orders yet.</div>
+{% endif %}
+{% endblock %}

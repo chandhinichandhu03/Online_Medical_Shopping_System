@@ -1,0 +1,24 @@
+{
+  "name": "MediCart - Online Pharmacy Store",
+  "short_name": "MediCart",
+  "description": "Premium online medical store and health assistant system with RAG AI support.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fcfaff",
+  "theme_color": "#7b2cbf",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://img.freepik.com/free-vector/heart-beat-lifeline-vector_53876-173434.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://img.freepik.com/free-vector/heart-beat-lifeline-vector_53876-173434.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

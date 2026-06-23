@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Subscribe to Medicine - MediCart{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-0 shadow-lg mt-5">
+            <div class="card-header bg-primary text-white p-4 text-center">
+                <i class="fas fa-redo fa-3x mb-3"></i>
+                <h3 class="fw-bold mb-0">Create Subscription Order</h3>
+                <p class="mb-0 small opacity-75">Subscribe to automatic chronic care deliveries and save up to 10% on every order!</p>
+            </div>
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex align-items-center mb-4 p-3 bg-light rounded-3">
+                    {% if medicine.image %}
+                    <img src="{{ medicine.image.url }}" alt="{{ medicine.name }}" class="img-fluid rounded me-3" style="width: 70px; height: 70px; object-fit: contain;">
+                    {% else %}
+                    <i class="fas fa-pills fa-3x text-muted me-3 opacity-50"></i>
+                    {% endif %}
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">{{ medicine.name }}</h5>
+                        <p class="small text-muted mb-0">{{ medicine.brand_name }}</p>
+                        <span class="fw-bold text-success">₹{{ medicine.price }}</span>
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Quantity per delivery</label>
+                        <input type="number" name="quantity" class="form-control" value="1" min="1" max="10" required>
+                        <div class="form-text">Choose the quantity of items to receive in each dispatch.</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Delivery Frequency</label>
+                        <select name="frequency" class="form-select" required>
+                            <option value="15">Every 15 Days</option>
+                            <option value="30" selected>Every 30 Days (Monthly)</option>
+                            <option value="60">Every 60 Days (Bi-monthly)</option>
+                            <option value="90">Every 90 Days (Quarterly)</option>
+                        </select>
+                        <div class="form-text">We will automatically dispatch your order at this selected interval.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill shadow">
+                        <i class="fas fa-calendar-check me-2"></i>Activate Subscription
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

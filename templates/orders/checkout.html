@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout - MediCart{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2 class="mb-4">Checkout</h2>
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-shipping-fast me-2"></i>Shipping Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if form.errors or messages %}
+                    <div class="mb-3">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                        {% if form.errors %}
+                        <div class="alert alert-danger">Please correct the errors in the form.</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Delivery Address</label>
+                        {{ form.address }}
+                        <div class="form-text text-muted">We will deliver to this address.</div>
+                        {% if form.address.errors %}
+                        <div class="text-danger small">{{ form.address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold"><i class="fas fa-file-prescription me-2"></i>Upload
+                            Prescription</label>
+                        {{ form.prescription_image }}
+                        <div class="form-text text-danger fw-bold"><i
+                                class="fas fa-exclamation-circle me-1"></i>Required ONLY if your cart contains
+                            restricted medicines (e.g., Antibiotics).</div>
+                        {% if form.prescription_image.errors %}
+                        <div class="text-danger small">{{ form.prescription_image.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <hr>
+                    <h5 class="mb-3">Payment Simulation</h5>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>This is a demo. No real payment is processed.
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="paymentMethod" id="cod" checked>
+                        <label class="form-check-label" for="cod">
+                            Cash on Delivery / Pay on Delivery
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="radio" name="paymentMethod" id="upi">
+                        <label class="form-check-label" for="upi">
+                            UPI (Simulated)
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg w-100 mt-3">Place Order</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h4 class="card-title mb-3">Order Summary</h4>
+                <ul class="list-group list-group-flush mb-3">
+                    {% for item in cart.items.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-light px-0">
+                        {{ item.medicine.name }} x {{ item.quantity }}
+                        <span>₹{{ item.total_price }}</span>
+                    </li>
+                    {% endfor %}
+                    <li
+                        class="list-group-item d-flex justify-content-between align-items-center bg-light px-0 fw-bold border-top">
+                        Total Amount
+                        <span class="text-primary">₹{{ cart.total_price }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Add Bootstrap classes
+    document.querySelector('#id_address').classList.add('form-control');
+    const prescriptionInput = document.querySelector('#id_prescription_image');
+    if (prescriptionInput) prescriptionInput.classList.add('form-control');
+</script>
+{% endblock %}

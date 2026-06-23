@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Pharmacist Queue - MediCart{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h1 class="display-6 fw-bold text-primary"><i class="fas fa-prescription-bottle-alt me-2"></i>Prescription Validation Queue</h1>
+        <p class="lead text-muted">Verify uploaded doctor prescriptions before approving medical dispatches.</p>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-dark text-white p-4">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-list-ul me-2 text-primary"></i>Orders Awaiting Review</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Prescribed Items</th>
+                                    <th>Prescription Image</th>
+                                    <th>Total Price</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td><span class="fw-bold">#{{ order.id }}</span></td>
+                                    <td>
+                                        <span class="d-block fw-bold">{{ order.user.username }}</span>
+                                        <small class="text-muted">{{ order.user.phone|default:"No phone" }}</small>
+                                    </td>
+                                    <td>
+                                        <ul class="list-unstyled mb-0 small">
+                                            {% for item in order.items.all %}
+                                            <li><i class="fas fa-pills text-danger me-1"></i>{{ item.quantity }} x {{ item.medicine.name }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                    <td>
+                                        {% if order.prescription_image %}
+                                        <a href="{{ order.prescription_image.url }}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill px-3">
+                                            <i class="fas fa-image me-1"></i>View Image
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted small">No file</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="fw-bold text-success">₹{{ order.total_amount }}</span></td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <a href="{% url 'pharmacist_validate' order.id 'approve' %}" class="btn btn-sm btn-success rounded-pill px-3">
+                                                <i class="fas fa-check-circle me-1"></i>Approve
+                                            </a>
+                                            <a href="{% url 'pharmacist_validate' order.id 'reject' %}" class="btn btn-sm btn-danger rounded-pill px-3">
+                                                <i class="fas fa-times-circle me-1"></i>Reject
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        <i class="fas fa-clipboard-check fa-4x mb-3 opacity-25"></i>
+                                        <h5>All clear! No orders pending review.</h5>
+                                        <p>Check back later for incoming prescriptions.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MediCart - Premium Medical Store{% endblock %}</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+    <nav class="navbar navbar-expand-lg navbar-light fixed-top shadow-sm py-3">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="fas fa-heartbeat text-primary me-2"></i>MediCart
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mx-auto">
+                    <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'medicine_list' %}">Shop</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'symptom_checker' %}">RAG Doctor</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'health_assistant' %}">RAG Assistant</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'drug_interactions_network' %}">Interactions Graph</a></li>
+                    <li class="nav-item"><a class="nav-link text-danger fw-bold"
+                            href="{% url 'emergency_services' %}"><i class="fas fa-ambulance me-1"></i>Emergency</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav align-items-center">
+                    <!-- Google Translate Widget -->
+                    <li class="nav-item me-3" id="google_translate_element"></li>
+
+                    <!-- Dark Mode Toggle Button -->
+                    <li class="nav-item me-3">
+                        <button onclick="toggleDarkMode()" class="btn btn-sm btn-outline-secondary rounded-circle" id="darkModeBtn" style="width:36px; height:36px; padding:0;">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                    </li>
+
+                    {% if user.is_authenticated %}
+                    {% if user.is_staff or user.role == 'Admin' or user.role == 'Pharmacist' %}
+                    <li class="nav-item dropdown me-2">
+                        <a class="nav-link dropdown-toggle fw-bold text-primary" href="#" data-bs-toggle="dropdown">
+                            Control Panel
+                        </a>
+                        <ul class="dropdown-menu border-0 shadow">
+                            {% if user.role == 'Admin' %}
+                            <li><a class="dropdown-item" href="{% url 'admin_dashboard' %}"><i class="fas fa-chart-pie me-2 text-primary"></i>Admin Dashboard</a></li>
+                            {% endif %}
+                            {% if user.role == 'Pharmacist' or user.is_staff %}
+                            <li><a class="dropdown-item" href="{% url 'pharmacist_queue' %}"><i class="fas fa-file-prescription me-2 text-success"></i>Pharmacist Queue</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{% url 'blockchain_ledger' %}"><i class="fas fa-cubes me-2 text-warning"></i>Batch Blockchain</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="{% url 'cart_view' %}">
+                            <i class="fas fa-shopping-bag fa-lg"></i>
+                            <span
+                                class="position-absolute top-10 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                                <span class="visually-hidden">New alerts</span>
+                            </span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown ms-2">
+                        <a class="nav-link dropdown-toggle fw-bold" href="#" data-bs-toggle="dropdown">
+                            {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
+                            <li><a class="dropdown-item" href="{% url 'profile_view' %}"><i class="fas fa-user-circle me-2 text-primary"></i>My Health Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{% url 'order_history' %}"><i class="fas fa-history me-2 text-success"></i>My Orders</a></li>
+                            <li><a class="dropdown-item" href="{% url 'wishlist_view' %}"><i class="fas fa-heart me-2 text-danger"></i>My Wishlist</a></li>
+                            <li><a class="dropdown-item" href="{% url 'subscriptions_list' %}"><i class="fas fa-redo me-2 text-warning"></i>Subscriptions</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li>
+                                <form action="{% url 'logout' %}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item"><a class="btn btn-outline-primary me-2 rounded-pill px-4"
+                            href="{% url 'login' %}">Login</a></li>
+                    <li class="nav-item"><a class="btn btn-primary rounded-pill px-4"
+                            href="{% url 'register' %}">Register</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Spacer for Fixed Navbar -->
+    <div style="height: 80px;"></div>
+
+    <div class="container mt-4 flex-grow-1">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm border-0" role="alert" style="border-radius: 12px;">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Floating Chatbot Widget -->
+    <div class="chatbot-bubble" onclick="toggleChatWindow()">
+        <i class="fas fa-comment-medical"></i>
+    </div>
+    <div class="chatbot-window" id="chatWindow">
+        <div class="chatbot-header">
+            <span><i class="fas fa-robot me-2"></i>MediBot RAG Assistant</span>
+            <button onclick="toggleChatWindow()" class="btn-close btn-close-white btn-sm" aria-label="Close"></button>
+        </div>
+        <div class="chatbot-messages" id="chatMessages">
+            <div class="p-2 mb-2 bg-light rounded text-dark small">
+                Hello! I am MediBot, your RAG-powered pharmacist assistant. Ask me anything about stock, dosages, or ingredients.
+            </div>
+        </div>
+        <div class="chatbot-input-container">
+            <form onsubmit="sendChat(event)" class="d-flex gap-2">
+                <input type="text" id="chatInput" class="form-control form-control-sm rounded-pill px-3" placeholder="Type a health query..." required>
+                <button type="submit" class="btn btn-primary btn-sm rounded-circle" style="width: 32px; height: 32px; padding: 0;">
+                    <i class="fas fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cart Recovery Reminder alert overlay -->
+    {% if cart_reminder %}
+    <div class="toast-container position-fixed bottom-0 start-0 p-3" style="z-index: 1100;">
+      <div id="cartToast" class="toast show border-0 shadow-lg" role="alert" style="border-radius: 15px;">
+        <div class="toast-header bg-primary text-white" style="border-top-left-radius: 15px; border-top-right-radius: 15px;">
+          <i class="fas fa-shopping-cart me-2"></i>
+          <strong class="me-auto">Cart Recovery</strong>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+          You left some items in your cart from your last visit!
+          <div class="mt-2 pt-2 border-top">
+            <a href="{% url 'cart_view' %}" class="btn btn-primary btn-sm rounded-pill px-3">Checkout Now</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <footer class="bg-dark text-light py-5 mt-5">
+        <div class="container">
+            <div class="row">
+                <!-- Brand & Description -->
+                <div class="col-md-4 mb-4">
+                    <h5 class="fw-bold mb-3 text-white"><i class="fas fa-heartbeat text-primary me-2"></i>MediCart</h5>
+                    <p class="text-white-50 small">Your trusted online pharmacy. Bringing healthcare to your doorstep
+                        with authentic medicines, RAG analysis, and blockchain batch verification.</p>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="col-md-2 mb-4">
+                    <h6 class="fw-bold mb-3 text-primary">Quick Links</h6>
+                    <ul class="list-unstyled small">
+                        <li class="mb-2"><a href="{% url 'home' %}" class="text-white-50 text-decoration-none">Home</a></li>
+                        <li class="mb-2"><a href="{% url 'medicine_list' %}" class="text-white-50 text-decoration-none">Shop Medicines</a></li>
+                        <li class="mb-2"><a href="{% url 'symptom_checker' %}" class="text-white-50 text-decoration-none">RAG Doctor</a></li>
+                        <li class="mb-2"><a href="{% url 'emergency_services' %}" class="text-white-50 text-decoration-none">Emergency</a></li>
+                    </ul>
+                </div>
+
+                <!-- Account & Dashboard -->
+                <div class="col-md-3 mb-4">
+                    <h6 class="fw-bold mb-3 text-primary">Account</h6>
+                    <ul class="list-unstyled small">
+                        {% if user.is_authenticated %}
+                        <li class="mb-2"><a href="{% url 'profile_view' %}" class="text-white-50 text-decoration-none">My Health Dashboard</a></li>
+                        <li class="mb-2"><a href="{% url 'order_history' %}" class="text-white-50 text-decoration-none">My Orders</a></li>
+                        {% else %}
+                        <li class="mb-2"><a href="{% url 'login' %}" class="text-white-50 text-decoration-none">Login</a></li>
+                        <li class="mb-2"><a href="{% url 'register' %}" class="text-white-50 text-decoration-none">Register</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="col-md-3 mb-4">
+                    <h6 class="fw-bold mb-3 text-primary">Contact Us</h6>
+                    <ul class="list-unstyled small text-white-50">
+                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2 text-primary"></i> 123 Health Street, MedCity</li>
+                        <li class="mb-2"><i class="fas fa-phone me-2 text-primary"></i> +91 98765 43210</li>
+                        <li class="mb-2"><i class="fas fa-envelope me-2 text-primary"></i> support@medicart.com</li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="border-secondary my-4">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start small text-white-50">
+                    &copy; 2026 MediCart. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Google Translate Script -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({pageLanguage: 'en', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+    <!-- UI Core Scripts: Dark Mode, Voice Search & RAG Chat widget -->
+    <script>
+        // 1. Dark Mode
+        if (localStorage.getItem('dark-mode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-sun"></i>';
+        }
+        function toggleDarkMode() {
+            if (document.body.classList.contains('dark-mode')) {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('dark-mode', 'disabled');
+                document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('dark-mode', 'enabled');
+                document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-sun"></i>';
+            }
+        }
+
+        // 2. Chatbot Window
+        function toggleChatWindow() {
+            var win = document.getElementById('chatWindow');
+            if (win.style.display === 'none' || win.style.display === '') {
+                win.style.display = 'flex';
+            } else {
+                win.style.display = 'none';
+            }
+        }
+
+        async function sendChat(e) {
+            e.preventDefault();
+            var input = document.getElementById('chatInput');
+            var val = input.value.trim();
+            if (!val) return;
+            
+            var msgBox = document.getElementById('chatMessages');
+            
+            // Append user msg
+            msgBox.innerHTML += `<div class="p-2 mb-2 bg-primary text-white rounded text-end small ms-auto" style="max-width:85%;">${val}</div>`;
+            input.value = '';
+            msgBox.scrollTop = msgBox.scrollHeight;
+            
+            // Fetch response from RAG API using Django CSRF token
+            try {
+                let formData = new FormData();
+                formData.append('message', val);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                
+                let response = await fetch('{% url "health_assistant" %}', {
+                    method: 'POST',
+                    body: formData
+                });
+                let html = await response.text();
+                
+                // Parse helper to pull bot response string from rendered page
+                let tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                let botText = tempDiv.querySelector('.markdown-content')?.innerHTML || "I retrieved details successfully but failed parsing. How else can I help you?";
+                
+                msgBox.innerHTML += `<div class="p-2 mb-2 bg-white text-dark border rounded small" style="max-width:90%;">${botText}</div>`;
+                msgBox.scrollTop = msgBox.scrollHeight;
+            } catch(e) {
+                msgBox.innerHTML += `<div class="p-2 mb-2 bg-danger text-white rounded small">Failed reaching assistant service.</div>`;
+            }
+        }
+
+        // 3. PWA Service Worker registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                .then(reg => console.log('[PWA SW] Registered', reg))
+                .catch(err => console.log('[PWA SW] Registration failed', err));
+            });
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

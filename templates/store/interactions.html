@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+{% block title %}Drug Interaction Graph - MediCart{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-4">
+        <h1 class="display-6 fw-bold text-primary"><i class="fas fa-network-wired me-2"></i>Drug Interaction Network</h1>
+        <p class="lead text-muted">A graph visualization tracking critical drug-to-drug conflict points. Drag active ingredients to see conflict mappings.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Interactive Canvas -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-lg position-relative overflow-hidden">
+                <div class="card-header bg-dark text-white p-3 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold"><i class="fas fa-project-diagram me-2 text-primary"></i>Interaction Nodes Map</span>
+                    <button onclick="resetGraph()" class="btn btn-sm btn-outline-light"><i class="fas fa-redo me-1"></i>Reset Layout</button>
+                </div>
+                <div class="card-body p-0 bg-dark" style="height: 500px;">
+                    <canvas id="networkCanvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Information Panel -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-lg h-100">
+                <div class="card-header bg-primary text-white p-3 fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>Conflict Details
+                </div>
+                <div class="card-body p-4" id="detailsBox">
+                    <div class="text-center text-muted py-5" id="detailsPlaceholder">
+                        <i class="fas fa-hand-pointer fa-3x mb-3 opacity-25"></i>
+                        <h5>Interactive Graph</h5>
+                        <p class="small">Hover or click on connection lines (edges) or nodes in the graph to display chemical interaction details and clinical effects.</p>
+                    </div>
+                    <div id="detailsContent" style="display: none;">
+                        <h4 class="fw-bold text-dark mb-1" id="detailTitle">Aspirin + Ibuprofen</h4>
+                        <div class="mb-3"><span class="badge" id="detailSeverity">Severe</span></div>
+                        <p class="text-muted" id="detailEffect">Effects details...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('networkCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    
+    let nodes = [];
+    let edges = [];
+    let selectedNode = null;
+    let hoveredEdge = null;
+    
+    // Resize handler
+    function resize() {
+        width = canvas.clientWidth;
+        height = canvas.clientHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    
+    // Fetch nodes & edges
+    async function loadGraphData() {
+        try {
+            const res = await fetch('{% url "drug_interaction_api" %}');
+            const data = await res.json();
+            
+            // Map node positions randomly
+            nodes = data.nodes.map((n, idx) => ({
+                ...n,
+                x: width / 2 + (Math.random() - 0.5) * 200,
+                y: height / 2 + (Math.random() - 0.5) * 200,
+                vx: 0,
+                vy: 0,
+                radius: 20
+            }));
+            
+            edges = data.edges;
+            animate();
+        } catch (e) {
+            console.error("Failed loading graph", e);
+        }
+    }
+
+    // Basic Force Directed Simulation forces
+    function updateSimulation() {
+        const k = 0.05; // Spring constant
+        const length = 120; // Preferred edge length
+        const repel = 600; // Repelling force
+        
+        // 1. Repel nodes from each other
+        for (let i = 0; i < nodes.length; i++) {
+            let n1 = nodes[i];
+            for (let j = i + 1; j < nodes.length; j++) {
+                let n2 = nodes[j];
+                let dx = n2.x - n1.x;
+                let dy = n2.y - n1.y;
+                let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                
+                let force = repel / (dist * dist);
+                let fx = (dx / dist) * force;
+                let fy = (dy / dist) * force;
+                
+                n1.vx -= fx;
+                n1.vy -= fy;
+                n2.vx += fx;
+                n2.vy += fy;
+            }
+        }
+        
+        // 2. Attract connected nodes (Spring force)
+        edges.forEach(e => {
+            let n1 = nodes.find(n => n.id === e.source);
+            let n2 = nodes.find(n => n.id === e.target);
+            if (n1 && n2) {
+                let dx = n2.x - n1.x;
+                let dy = n2.y - n1.y;
+                let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                let diff = dist - length;
+                
+                let fx = (dx / dist) * k * diff;
+                let fy = (dy / dist) * k * diff;
+                
+                n1.vx += fx;
+                n1.vy += fy;
+                n2.vx -= fx;
+                n2.vy -= fy;
+            }
+        });
+        
+        // 3. Update positions with damping, pulling to center
+        nodes.forEach(n => {
+            if (n === selectedNode) return;
+            
+            // Central gravity
+            n.vx += (width/2 - n.x) * 0.005;
+            n.vy += (height/2 - n.y) * 0.005;
+            
+            n.x += n.vx;
+            n.y += n.vy;
+            
+            // Damping
+            n.vx *= 0.85;
+            n.vy *= 0.85;
+            
+            // Constrain
+            n.x = Math.max(n.radius, Math.min(width - n.radius, n.x));
+            n.y = Math.max(n.radius, Math.min(height - n.radius, n.y));
+        });
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        
+        // Draw Edges
+        edges.forEach(e => {
+            let n1 = nodes.find(n => n.id === e.source);
+            let n2 = nodes.find(n => n.id === e.target);
+            if (n1 && n2) {
+                ctx.beginPath();
+                ctx.moveTo(n1.x, n1.y);
+                ctx.lineTo(n2.x, n2.y);
+                
+                // Color line by severity
+                let edgeColor = '#17a2b8'; // Default
+                if (e.severity === 'Severe') edgeColor = '#dc3545';
+                else if (e.severity === 'Moderate') edgeColor = '#ffc107';
+                
+                ctx.strokeStyle = edgeColor;
+                ctx.lineWidth = (e === hoveredEdge) ? 4 : 2;
+                ctx.stroke();
+            }
+        });
+        
+        // Draw Nodes
+        nodes.forEach(n => {
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+            ctx.fillStyle = (n === selectedNode) ? '#a29bfe' : '#6c5ce7';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Node Label
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(n.label, n.x, n.y);
+        });
+    }
+    
+    function animate() {
+        updateSimulation();
+        draw();
+        requestAnimationFrame(animate);
+    }
+    
+    function resetGraph() {
+        nodes.forEach(n => {
+            n.x = width / 2 + (Math.random() - 0.5) * 200;
+            n.y = height / 2 + (Math.random() - 0.5) * 200;
+            n.vx = 0;
+            n.vy = 0;
+        });
+    }
+    
+    // Interactions tracking (dragging & clicking)
+    canvas.addEventListener('mousedown', e => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        // Check node click
+        selectedNode = nodes.find(n => {
+            let dx = n.x - mouseX;
+            let dy = n.y - mouseY;
+            return Math.sqrt(dx*dx + dy*dy) < n.radius;
+        });
+    });
+    
+    canvas.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        if (selectedNode) {
+            selectedNode.x = mouseX;
+            selectedNode.y = mouseY;
+            selectedNode.vx = 0;
+            selectedNode.vy = 0;
+            return;
+        }
+        
+        // Check edge hovering
+        hoveredEdge = null;
+        for (let edge of edges) {
+            let n1 = nodes.find(n => n.id === edge.source);
+            let n2 = nodes.find(n => n.id === edge.target);
+            if (n1 && n2) {
+                // Distance from point to line segment
+                let d = distToSegment({x: mouseX, y: mouseY}, n1, n2);
+                if (d < 8) {
+                    hoveredEdge = edge;
+                    canvas.style.cursor = 'pointer';
+                    break;
+                }
+            }
+        }
+        if (!hoveredEdge) {
+            canvas.style.cursor = 'default';
+        }
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+        selectedNode = null;
+    });
+    
+    canvas.addEventListener('click', e => {
+        if (hoveredEdge) {
+            showDetails(hoveredEdge);
+        }
+    });
+    
+    function showDetails(edge) {
+        document.getElementById('detailsPlaceholder').style.display = 'none';
+        const content = document.getElementById('detailsContent');
+        content.style.display = 'block';
+        
+        document.getElementById('detailTitle').textContent = `${edge.source.toUpperCase()} + ${edge.target.toUpperCase()}`;
+        
+        const sev = document.getElementById('detailSeverity');
+        sev.textContent = edge.severity;
+        sev.className = 'badge';
+        if (edge.severity === 'Severe') sev.classList.add('bg-danger');
+        else if (edge.severity === 'Moderate') sev.classList.add('bg-warning', 'text-dark');
+        else sev.classList.add('bg-info');
+        
+        document.getElementById('detailEffect').textContent = edge.effect;
+    }
+    
+    // Math utils
+    function dist2(v, w) { return (v.x - w.x)*(v.x - w.x) + (v.y - w.y)*(v.y - w.y); }
+    function distToSegmentSquared(p, v, w) {
+      var l2 = dist2(v, w);
+      if (l2 == 0) return dist2(p, v);
+      var t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
+    }
+    function distToSegment(p, v, w) { return Math.sqrt(distToSegmentSquared(p, v, w)); }
+    
+    // Init
+    resize();
+    loadGraphData();
+</script>
+{% endblock %}

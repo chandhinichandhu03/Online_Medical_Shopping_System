@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Shop - MediCart{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Filters -->
+    <div class="col-lg-3 mb-4">
+        <div class="card border-0 shadow-sm sticky-top" style="top: 100px; z-index: 10; border-radius: 20px;">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3"><i class="fas fa-filter me-2 text-primary"></i>Filters</h5>
+
+                <form action="{% url 'medicine_list' %}" method="get" class="mb-4" id="searchForm">
+                    <div class="search-wrapper">
+                        <input type="text" name="q" id="searchInput" class="form-control rounded-pill pe-5" placeholder="Search medicines..."
+                            value="{{ query|default:'' }}">
+                        <button type="button" onclick="startVoiceSearch()" class="voice-search-btn" id="voiceBtn" title="Search with Voice">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <h6 class="fw-bold text-uppercase small text-muted mb-3">Categories</h6>
+                <div class="list-group list-group-flush">
+                    <a href="{% url 'medicine_list' %}"
+                        class="list-group-item list-group-item-action border-0 rounded ps-2 mb-1 {% if not request.GET.category %}fw-bold text-primary bg-light{% endif %}">
+                        All Categories
+                    </a>
+                    {% for cat in categories %}
+                    <a href="?category={{ cat.id }}"
+                        class="list-group-item list-group-item-action border-0 rounded ps-2 mb-1 {% if request.GET.category == cat.id|stringformat:'s' %}fw-bold text-primary bg-light{% endif %}">
+                        {{ cat.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+
+                <hr class="my-3">
+                <h6 class="fw-bold text-uppercase small text-muted mb-3">Quick Tags</h6>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="?q=Pet"
+                        class="badge bg-info text-decoration-none bg-opacity-10 text-info border border-info px-3 py-2 rounded-pill">Pet Care</a>
+                    <a href="?q=First Aid"
+                        class="badge bg-danger text-decoration-none bg-opacity-10 text-danger border border-danger px-3 py-2 rounded-pill">First Aid</a>
+                    <a href="?q=Syrup"
+                        class="badge bg-warning text-decoration-none bg-opacity-10 text-warning border border-warning px-3 py-2 rounded-pill">Syrups</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="col-lg-9">
+        <!-- Typo Correction Suggestion Link -->
+        {% if did_you_mean %}
+        <div class="alert alert-info border-0 rounded-3 shadow-sm mb-4 d-flex align-items-center justify-content-between">
+            <div>
+                <i class="fas fa-lightbulb text-warning me-2 fa-lg"></i>
+                No direct matches for <strong>"{{ query }}"</strong>. Did you mean: 
+                <a href="?q={{ did_you_mean }}" class="fw-bold text-primary text-decoration-underline">{{ did_you_mean }}</a>?
+            </div>
+            <a href="{% url 'medicine_list' %}" class="btn-close" aria-label="Close"></a>
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold mb-0">Medicines</h4>
+            <span class="text-muted small fw-bold">{{ medicines.count }} Products Found</span>
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for medicine in medicines %}
+            <div class="col">
+                <div class="card h-100 border-0">
+                    <div class="card-img-top text-center p-4 bg-light position-relative"
+                        style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
+                        {% if medicine.image %}
+                        <img src="{{ medicine.image.url }}" class="img-fluid" alt="{{ medicine.name }}"
+                            style="max-height: 150px; object-fit: contain;">
+                        {% else %}
+                        <i class="fas fa-pills fa-4x text-muted opacity-25"></i>
+                        {% endif %}
+                        
+                        <div class="position-absolute top-0 start-0 m-3">
+                            <span class="badge bg-white text-dark shadow-sm">{{ medicine.category.name }}</span>
+                        </div>
+
+                        <div class="position-absolute top-0 end-0 m-3 d-flex flex-column gap-2">
+                            <a href="{% url 'wishlist_toggle' medicine.id %}" class="btn btn-sm btn-light rounded-circle shadow-sm" style="width: 32px; height: 32px; padding: 4px;">
+                                <i class="far fa-heart text-danger"></i>
+                            </a>
+                            {% if medicine.stock == 0 %}
+                            <span class="badge bg-danger">Out of Stock</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <small class="text-muted">{{ medicine.brand_name }}</small>
+                        <h5 class="card-title fw-bold text-dark mb-1">{{ medicine.name }}</h5>
+                        <p class="small text-secondary text-truncate">{{ medicine.description }}</p>
+                        
+                        <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                            <span class="h5 mb-0 text-success fw-bold">₹{{ medicine.price }}</span>
+                            <div class="d-flex gap-1">
+                                <a href="{% url 'compare_medicines' %}?id1={{ medicine.id }}" class="btn btn-outline-secondary btn-sm rounded-circle" title="Compare" style="width: 32px; height: 32px; padding: 4px;">
+                                    <i class="fas fa-balance-scale"></i>
+                                </a>
+                                <a href="{% url 'medicine_detail' medicine.pk %}"
+                                    class="btn btn-primary btn-sm rounded-pill px-3">Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <div class="display-1 text-muted opacity-25 mb-3"><i class="fas fa-search"></i></div>
+                <h3>No medicines found.</h3>
+                <p class="text-muted">Try adjusting your search query or choosing another category.</p>
+                <a href="{% url 'medicine_list' %}" class="btn btn-primary rounded-pill px-4 shadow">Clear Filters</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Web Speech API script -->
+<script>
+    function startVoiceSearch() {
+        const btn = document.getElementById('voiceBtn');
+        const input = document.getElementById('searchInput');
+        
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert("Voice search is not supported in this browser. Please try Google Chrome.");
+            return;
+        }
+        
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        
+        recognition.onstart = function() {
+            btn.classList.add('listening');
+            btn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+        };
+        
+        recognition.onerror = function(event) {
+            console.error("Speech Recognition Error", event);
+            btn.classList.remove('listening');
+            btn.innerHTML = '<i class="fas fa-microphone"></i>';
+        };
+        
+        recognition.onend = function() {
+            btn.classList.remove('listening');
+            btn.innerHTML = '<i class="fas fa-microphone"></i>';
+        };
+        
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            input.value = transcript;
+            // Submit the form
+            document.getElementById('searchForm').submit();
+        };
+        
+        recognition.start();
+    }
+</script>
+{% endblock %}

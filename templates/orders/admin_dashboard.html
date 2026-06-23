@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard & Analytics - MediCart{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h1 class="fw-bold"><i class="fas fa-chart-line me-2 text-primary"></i>Admin Analytics & Forecast Dashboard</h1>
+        <span class="badge bg-dark px-3 py-2 rounded-pill"><i class="fas fa-robot me-1 text-warning"></i>ML Engine Active</span>
+    </div>
+
+    <!-- Key Metrics Grid -->
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-lg bg-primary text-white h-100 p-3" style="background: linear-gradient(135deg, #7b2cbf, #5a189a); border-radius: 18px;">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-uppercase small mb-1 opacity-75">Gross Revenue</h6>
+                    <h3 class="fw-bold mb-0">₹{{ total_sales }}</h3>
+                    <small class="text-success-light fw-bold"><i class="fas fa-arrow-up me-1"></i>+12.4% MoM</small>
+                </div>
+                <i class="fas fa-wallet fa-3x opacity-25"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-lg bg-success text-white h-100 p-3" style="background: linear-gradient(135deg, #38b000, #007200); border-radius: 18px;">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-uppercase small mb-1 opacity-75">Total Orders</h6>
+                    <h3 class="fw-bold mb-0">{{ total_orders }}</h3>
+                    <small class="text-white-50">All channels</small>
+                </div>
+                <i class="fas fa-shopping-bag fa-3x opacity-25"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-lg bg-warning text-dark h-100 p-3" style="background: linear-gradient(135deg, #ffb703, #fb8500); border-radius: 18px;">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-uppercase small mb-1 opacity-75">Pending Reviews</h6>
+                    <h3 class="fw-bold mb-0 text-white">{{ pending_orders }}</h3>
+                    <small class="text-white small fw-bold">Prescriptions queue</small>
+                </div>
+                <i class="fas fa-notes-medical fa-3x opacity-25 text-white"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="card border-0 shadow-lg bg-danger text-white h-100 p-3" style="background: linear-gradient(135deg, #e63946, #c1121f); border-radius: 18px;">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="text-uppercase small mb-1 opacity-75">Security Incidents</h6>
+                    <h3 class="fw-bold mb-0">{% if anomalous_orders %}1{% else %}0{% endif %}</h3>
+                    <small class="text-white-50">Anomaly detector alert</small>
+                </div>
+                <i class="fas fa-shield-alt fa-3x opacity-25"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fraud Anomaly Warning Alert -->
+{% if anomalous_orders %}
+<div class="alert alert-danger border-0 shadow-sm rounded-3 d-flex align-items-center mb-4" role="alert">
+    <i class="fas fa-exclamation-triangle fa-2x me-3 text-danger"></i>
+    <div>
+        <strong>ML Anomaly Alert:</strong> Suspicious purchase transaction flagged (Order #{{ anomalous_orders.first.id }} | Total amount ₹{{ anomalous_orders.first.total_amount }} is unusually high). Verify prescription file carefully.
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+    <!-- Chart: ML Demand Forecasting -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="card-header bg-white border-0 p-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-chart-area text-primary me-2"></i>ML-based Demand Forecasting (Next 3 Months)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="demandForecastChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart: Segments -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-lg h-100" style="border-radius: 20px;">
+            <div class="card-header bg-white border-0 p-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-chart-pie text-primary me-2"></i>Customer Segmentation</h5>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div style="width: 100%; max-width: 250px;">
+                    <canvas id="segmentChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- ML Low Stock Prediction & Automatic Reorder -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-lg h-100" style="border-radius: 20px;">
+            <div class="card-header bg-white border-0 p-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-hourglass-half text-danger me-2"></i>Stock Depletion Prediction & Reorder</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Medicine</th>
+                                <th>Stock</th>
+                                <th>Est. Remaining</th>
+                                <th>ML Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for med in low_stock_medicines %}
+                            <tr>
+                                <td class="text-start ps-3">
+                                    <span class="fw-bold text-dark">{{ med.name }}</span>
+                                </td>
+                                <td><span class="badge bg-danger">{{ med.stock }} left</span></td>
+                                <td><span class="text-danger fw-bold">{{ med.predicted_days_remaining }} Days</span></td>
+                                <td>
+                                    {% if med.reorder_suggested %}
+                                    <button onclick="simulateReorder('{{ med.name }}')" class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 text-xs">
+                                        <i class="fas fa-truck-loading me-1"></i>Auto-Reorder
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">All stocks healthy.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Medicine Expiry Alerts & Batch Tracking -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-lg h-100" style="border-radius: 20px;">
+            <div class="card-header bg-white border-0 p-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-calendar-times text-warning me-2"></i>Medicine Expiry Warnings</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Medicine</th>
+                                <th>Batch ID</th>
+                                <th>Expiry Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for med in near_expiry_medicines %}
+                            <tr>
+                                <td class="text-start ps-3"><span class="fw-bold">{{ med.name }}</span></td>
+                                <td><span class="font-monospace small bg-light p-1 rounded">{{ med.batch_number }}</span></td>
+                                <td><span class="text-danger fw-bold">{{ med.expiry_date }}</span></td>
+                                <td>
+                                    <span class="badge bg-danger-subtle text-danger"><i class="fas fa-exclamation-circle me-1"></i>Critical Expiry</span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">No medicines nearing expiry (within 30 days).</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <!-- Warehouse Management Grid Layout -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="card-header bg-white border-0 p-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-warehouse text-primary me-2"></i>Interactive Warehouse Storage Layout Grid</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 text-center">
+                    <!-- Warehouse Matrix Row A -->
+                    <div class="col-3 p-3 bg-light border rounded position-relative">
+                        <span class="fw-bold d-block text-primary">BLOCK A1</span>
+                        <small class="text-muted text-xs">Ayurveda</small>
+                    </div>
+                    <div class="col-3 p-3 bg-light border rounded position-relative">
+                        <span class="fw-bold d-block text-primary">BLOCK A2</span>
+                        <small class="text-muted text-xs">Wellness</small>
+                    </div>
+                    <div class="col-3 p-3 bg-light border rounded position-relative">
+                        <span class="fw-bold d-block text-primary">BLOCK B1</span>
+                        <small class="text-muted text-xs">Tablets (GSK)</small>
+                    </div>
+                    <div class="col-3 p-3 bg-light border rounded position-relative">
+                        <span class="fw-bold d-block text-primary">BLOCK B2</span>
+                        <small class="text-muted text-xs">Tablets (Bayer)</small>
+                    </div>
+                    <!-- Warehouse Matrix Row B -->
+                    <div class="col-3 p-3 bg-light border rounded position-relative">
+                        <span class="fw-bold d-block text-primary">BLOCK C1</span>
+                        <small class="text-muted text-xs">Syrups</small>
+                    </div>
+                    <div class="col-3 p-3 bg-light border rounded position-relative">
+                        <span class="fw-bold d-block text-primary">BLOCK C2</span>
+                        <small class="text-muted text-xs">Injections</small>
+                    </div>
+                    <div class="col-3 p-3 bg-light border rounded position-relative">
+                        <span class="fw-bold d-block text-primary">BLOCK D1</span>
+                        <small class="text-muted text-xs">Baby Care</small>
+                    </div>
+                    <div class="col-3 p-3 bg-light border rounded position-relative">
+                        <span class="fw-bold d-block text-primary">BLOCK D2</span>
+                        <small class="text-muted text-xs">First Aid</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Audit Status Logs -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-lg h-100" style="border-radius: 20px;">
+            <div class="card-header bg-white border-0 p-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-history text-secondary me-2"></i>Order Audit Logs</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small" style="max-height: 250px; overflow-y: auto;">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold">Order #1 status updated</span>
+                            <br><small class="text-muted">Pending &rarr; Approved</small>
+                        </div>
+                        <span class="text-muted small">Pharmacist</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold">Order #2 status updated</span>
+                            <br><small class="text-muted">Created &rarr; Pending</small>
+                        </div>
+                        <span class="text-muted small">System</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Demand Forecast Chart
+    const forecastCtx = document.getElementById('demandForecastChart').getContext('2d');
+    new Chart(forecastCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul (F)', 'Aug (F)', 'Sep (F)'],
+            datasets: [
+                {
+                    label: 'Historical Sales Volume',
+                    data: [120, 150, 140, 180, 200, 240, null, null, null],
+                    borderColor: '#7b2cbf',
+                    backgroundColor: 'rgba(123, 44, 191, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'ML Demand Prediction',
+                    data: [null, null, null, null, null, 240, 260, 290, 310],
+                    borderColor: '#fb8500',
+                    borderDash: [5, 5],
+                    borderWidth: 3,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // 2. Segment Chart
+    const segmentCtx = document.getElementById('segmentChart').getContext('2d');
+    new Chart(segmentCtx, {
+        type: 'pie',
+        data: {
+            labels: {{ customer_segments|safe }},
+            datasets: [{
+                data: {{ customer_segment_values|safe }},
+                backgroundColor: ['#7b2cbf', '#38b000', '#ffb703', '#e63946'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    function simulateReorder(medName) {
+        alert(`Auto-Reorder trigger submitted to suppliers for: ${medName}. Initializing supply dispatch.`);
+    }
+</script>
+{% endblock %}
