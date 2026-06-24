@@ -1,100 +1,1035 @@
 {% extends 'base.html' %}
 
-{% block title %}Checkout - MediCart{% endblock %}
+{% block title %}Secure Checkout - MediCart{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <h2 class="mb-4">Checkout</h2>
-        <div class="card mb-4">
-            <div class="card-header bg-light">
-                <h5 class="mb-0"><i class="fas fa-shipping-fast me-2"></i>Shipping Details</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    {% if form.errors or messages %}
-                    <div class="mb-3">
-                        {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                        {% endfor %}
-                        {% if form.errors %}
-                        <div class="alert alert-danger">Please correct the errors in the form.</div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
+<style>
+    /* Premium Checkout Theme */
+    .checkout-stepper {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        margin-bottom: 2rem;
+    }
+    .checkout-stepper::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: #e2e8f0;
+        z-index: 1;
+        transform: translateY(-50%);
+    }
+    body.dark-mode .checkout-stepper::before {
+        background: #334155;
+    }
+    .stepper-progress {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        height: 3px;
+        background: var(--primary-color, #0d9488);
+        z-index: 1;
+        transform: translateY(-50%);
+        transition: width 0.4s ease;
+        width: 0%;
+    }
+    .step-item {
+        position: relative;
+        z-index: 2;
+        background: #f8fafc;
+        border: 3px solid #e2e8f0;
+        color: #64748b;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    body.dark-mode .step-item {
+        background: #0f172a;
+        border-color: #334155;
+        color: #94a3b8;
+    }
+    .step-item.active {
+        border-color: var(--primary-color, #0d9488);
+        background: var(--primary-color, #0d9488);
+        color: white;
+        box-shadow: 0 0 12px rgba(13, 148, 136, 0.4);
+    }
+    .step-item.completed {
+        border-color: var(--primary-color, #0d9488);
+        background: #f8fafc;
+        color: var(--primary-color, #0d9488);
+    }
+    body.dark-mode .step-item.completed {
+        background: #0f172a;
+    }
+    .step-label {
+        position: absolute;
+        top: 45px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        font-weight: 600;
+        color: #64748b;
+    }
+    .step-item.active .step-label {
+        color: var(--primary-color, #0d9488);
+    }
 
-                    <div class="mb-3">
-                        <label class="form-label">Delivery Address</label>
-                        {{ form.address }}
-                        <div class="form-text text-muted">We will deliver to this address.</div>
-                        {% if form.address.errors %}
-                        <div class="text-danger small">{{ form.address.errors.0 }}</div>
-                        {% endif %}
-                    </div>
+    /* Checkout Layout Panels */
+    .checkout-panel {
+        display: none;
+        animation: fadeIn 0.4s ease forwards;
+    }
+    .checkout-panel.active {
+        display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 
-                    <div class="mb-4">
-                        <label class="form-label fw-bold"><i class="fas fa-file-prescription me-2"></i>Upload
-                            Prescription</label>
-                        {{ form.prescription_image }}
-                        <div class="form-text text-danger fw-bold"><i
-                                class="fas fa-exclamation-circle me-1"></i>Required ONLY if your cart contains
-                            restricted medicines (e.g., Antibiotics).</div>
-                        {% if form.prescription_image.errors %}
-                        <div class="text-danger small">{{ form.prescription_image.errors.0 }}</div>
-                        {% endif %}
-                    </div>
+    /* Glassmorphism Cards */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    body.dark-mode .glass-card {
+        background: rgba(15, 23, 42, 0.6);
+        border-color: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Interactive Card Graphic */
+    .card-wrapper {
+        perspective: 1000px;
+        width: 100%;
+        max-width: 350px;
+        height: 200px;
+        margin: 1.5rem auto;
+    }
+    .credit-card-ui {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.6s ease;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .credit-card-ui.flipped {
+        transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        padding: 1.5rem;
+        color: white;
+        background: linear-gradient(135deg, #0d9488 0%, #1e1b4b 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .card-back {
+        transform: rotateY(180deg);
+        background: linear-gradient(135deg, #1e1b4b 0%, #0d9488 100%);
+        justify-content: flex-start;
+        padding: 1rem 0;
+    }
+    .card-stripe {
+        width: 100%;
+        height: 40px;
+        background: #000;
+        margin-top: 10px;
+    }
+    .card-back-cvv {
+        background: #fff;
+        color: #000;
+        width: 70%;
+        height: 30px;
+        margin: 20px auto 0;
+        text-align: right;
+        padding-right: 10px;
+        line-height: 30px;
+        font-family: monospace;
+        font-weight: bold;
+        border-radius: 4px;
+    }
 
-                    <hr>
-                    <h5 class="mb-3">Payment Simulation</h5>
-                    <div class="alert alert-warning">
-                        <i class="fas fa-info-circle me-2"></i>This is a demo. No real payment is processed.
-                    </div>
+    /* UPI Icons and Net Banking search */
+    .upi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 1.5rem;
+    }
+    .upi-logo-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: white;
+    }
+    body.dark-mode .upi-logo-card {
+        border-color: #334155;
+        background: #0f172a;
+    }
+    .upi-logo-card.selected {
+        border-color: var(--primary-color, #0d9488);
+        background: rgba(13, 148, 136, 0.05);
+    }
+    .upi-logo-card img {
+        height: 24px;
+        object-fit: contain;
+    }
 
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="paymentMethod" id="cod" checked>
-                        <label class="form-check-label" for="cod">
-                            Cash on Delivery / Pay on Delivery
-                        </label>
-                    </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="radio" name="paymentMethod" id="upi">
-                        <label class="form-check-label" for="upi">
-                            UPI (Simulated)
-                        </label>
-                    </div>
+    .bank-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        max-height: 220px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+    .bank-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        background: white;
+        transition: all 0.2s ease;
+    }
+    body.dark-mode .bank-card {
+        border-color: #334155;
+        background: #0f172a;
+    }
+    .bank-card.selected {
+        border-color: var(--primary-color, #0d9488);
+        background: rgba(13, 148, 136, 0.05);
+    }
 
-                    <button type="submit" class="btn btn-success btn-lg w-100 mt-3">Place Order</button>
-                </form>
-            </div>
+    /* Secured Overlay Loading Animation */
+    #paymentOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(15px);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+    }
+    #paymentOverlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .heartbeat-spinner {
+        width: 80px;
+        height: 80px;
+        border: 5px solid rgba(13, 148, 136, 0.2);
+        border-top-color: var(--primary-color, #0d9488);
+        border-radius: 50%;
+        animation: spin 1s infinite linear;
+        margin-bottom: 20px;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Delivery options cards */
+    .delivery-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 15px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: white;
+        position: relative;
+    }
+    body.dark-mode .delivery-card {
+        border-color: #334155;
+        background: #0f172a;
+    }
+    .delivery-card.selected {
+        border-color: var(--primary-color, #0d9488);
+        background: rgba(13, 148, 136, 0.05);
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Session Timeout Countdown Banner -->
+        <div class="alert alert-warning d-flex justify-content-between align-items-center mb-4 no-print shadow-sm" id="timeoutBanner" style="border-radius: 12px;">
+            <span><i class="fas fa-stopwatch me-2 text-danger animate-pulse"></i>Checkout session expires in: <strong id="timer">10:00</strong></span>
+            <button onclick="extendSession()" class="btn btn-sm btn-outline-warning rounded-pill px-3">Extend Session</button>
         </div>
-    </div>
 
-    <div class="col-md-4">
-        <div class="card bg-light">
-            <div class="card-body">
-                <h4 class="card-title mb-3">Order Summary</h4>
-                <ul class="list-group list-group-flush mb-3">
-                    {% for item in cart.items.all %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center bg-light px-0">
-                        {{ item.medicine.name }} x {{ item.quantity }}
-                        <span>₹{{ item.total_price }}</span>
-                    </li>
-                    {% endfor %}
-                    <li
-                        class="list-group-item d-flex justify-content-between align-items-center bg-light px-0 fw-bold border-top">
-                        Total Amount
-                        <span class="text-primary">₹{{ cart.total_price }}</span>
-                    </li>
-                </ul>
-            </div>
+        <div class="checkout-stepper px-md-5">
+            <div class="stepper-progress" id="stepProgress"></div>
+            <div class="step-item active" id="step-1-indicator">1<span class="step-label d-none d-md-inline">Review Cart</span></div>
+            <div class="step-item" id="step-2-indicator">2<span class="step-label d-none d-md-inline">Delivery Address</span></div>
+            <div class="step-item" id="step-3-indicator">3<span class="step-label d-none d-md-inline">Payment Options</span></div>
+            <div class="step-item" id="step-4-indicator">4<span class="step-label d-none d-md-inline">Confirm Order</span></div>
         </div>
+
+        <form id="checkoutForm" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Hidden Fields for calculations -->
+            <input type="hidden" name="discount_applied" id="discountInput" value="0.00">
+            <input type="hidden" name="force_fail" id="forceFailInput" value="false">
+
+            <div class="row g-4">
+                <!-- Left Hand Steps Column -->
+                <div class="col-md-8">
+                    <!-- STEP 1: REVIEW CART -->
+                    <div class="card glass-card p-4 checkout-panel active" id="panel-1">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-shopping-basket me-2 text-primary"></i>Step 1: Review Items</h4>
+                        <p class="text-muted small">Verify items, quantities, and prices before submitting shipping logs.</p>
+                        
+                        <div class="table-responsive mb-4">
+                            <table class="table table-borderless align-middle">
+                                <thead>
+                                    <tr class="border-bottom text-muted" style="font-size:0.85rem;">
+                                        <th>Product</th>
+                                        <th>Quantity</th>
+                                        <th class="text-end">Total Price</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in cart.items.all %}
+                                    <tr class="border-bottom">
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3">
+                                                {% if item.medicine.image %}
+                                                <img src="{{ item.medicine.image.url }}" alt="{{ item.medicine.name }}" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
+                                                {% else %}
+                                                <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center" style="width:50px; height:50px;"><i class="fas fa-pills"></i></div>
+                                                {% endif %}
+                                                <div>
+                                                    <div class="fw-bold">{{ item.medicine.name }}</div>
+                                                    <div class="small text-muted">{{ item.medicine.generic_name }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="fw-bold">{{ item.quantity }}</td>
+                                        <td class="text-end fw-bold">₹{{ item.total_price }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Delivery Options Segment -->
+                        <h5 class="fw-bold mb-3">Choose Delivery Priority</h5>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="delivery-card selected" onclick="selectDelivery('Standard', 40.00)" id="del-Standard">
+                                    <input type="radio" name="delivery_option" value="Standard" checked class="d-none">
+                                    <div class="fw-bold"><i class="fas fa-truck me-2 text-muted"></i>Standard</div>
+                                    <div class="small text-muted mt-1">Delivery in 2-3 Days.</div>
+                                    <div class="fw-bold text-primary mt-2">₹40.00 <span class="small font-normal text-muted">(Free above ₹500)</span></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="delivery-card" onclick="selectDelivery('Express', 100.00)" id="del-Express">
+                                    <input type="radio" name="delivery_option" value="Express" class="d-none">
+                                    <div class="fw-bold"><i class="fas fa-shipping-fast me-2 text-warning"></i>Express</div>
+                                    <div class="small text-muted mt-1">Delivery in 1 Day.</div>
+                                    <div class="fw-bold text-primary mt-2">₹100.00</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="delivery-card" onclick="selectDelivery('Same Day', 150.00)" id="del-Same-Day">
+                                    <input type="radio" name="delivery_option" value="Same Day" class="d-none">
+                                    <div class="fw-bold"><i class="fas fa-bolt me-2 text-danger animate-pulse"></i>Same Day</div>
+                                    <div class="small text-muted mt-1">Within 12 Hours.</div>
+                                    <div class="fw-bold text-primary mt-2">₹150.00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-end mt-4">
+                            <button type="button" onclick="nextStep(2)" class="btn btn-primary rounded-pill px-5 btn-lg">Proceed to Shipping <i class="fas fa-arrow-right ms-2"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: SHIPPING/DELIVERY DETAILS -->
+                    <div class="card glass-card p-4 checkout-panel" id="panel-2">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-shipping-fast me-2 text-primary"></i>Step 2: Shipping Address</h4>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Full Name</label>
+                                {{ form.full_name }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Mobile Number</label>
+                                {{ form.mobile_number }}
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Email Address</label>
+                                {{ form.email }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">House / Apt No.</label>
+                                {{ form.house_number }}
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">Landmark</label>
+                                {{ form.landmark }}
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Street Address</label>
+                                {{ form.street_address }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Pincode</label>
+                                {{ form.pincode }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">City</label>
+                                {{ form.city }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">State</label>
+                                {{ form.state }}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" onclick="prevStep(1)" class="btn btn-outline-secondary rounded-pill px-4"><i class="fas fa-arrow-left me-2"></i>Back</button>
+                            <button type="button" onclick="validateAddressStep()" class="btn btn-primary rounded-pill px-5 btn-lg">Proceed to Payments <i class="fas fa-arrow-right ms-2"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: PAYMENT OPTIONS -->
+                    <div class="card glass-card p-4 checkout-panel" id="panel-3">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-wallet me-2 text-primary"></i>Step 3: Choose Payment Mode</h4>
+                        
+                        <div class="row g-3">
+                            <!-- Payment Categories Selector Left -->
+                            <div class="col-md-4 border-end">
+                                <div class="nav flex-column nav-pills" id="payment-tabs" role="tablist">
+                                    <button class="nav-link text-start active mb-2 py-3" onclick="setPaymentMethod('COD')" type="button"><i class="fas fa-money-bill-wave me-2"></i>Cash on Delivery</button>
+                                    <button class="nav-link text-start mb-2 py-3" onclick="setPaymentMethod('Card')" type="button"><i class="fas fa-credit-card me-2"></i>Credit / Debit Card</button>
+                                    <button class="nav-link text-start mb-2 py-3" onclick="setPaymentMethod('UPI')" type="button"><i class="fas fa-mobile-alt me-2"></i>UPI Payment</button>
+                                    <button class="nav-link text-start mb-2 py-3" onclick="setPaymentMethod('NetBanking')" type="button"><i class="fas fa-university me-2"></i>Net Banking</button>
+                                    <button class="nav-link text-start mb-2 py-3" onclick="setPaymentMethod('Wallet')" type="button"><i class="fas fa-wallet me-2"></i>Mobile Wallet</button>
+                                </div>
+                                <input type="hidden" id="selectedPaymentMethod" name="payment_method" value="COD">
+                            </div>
+
+                            <!-- Payment Inputs Right -->
+                            <div class="col-md-8 px-md-4">
+                                <!-- Cash On Delivery Option -->
+                                <div class="payment-method-panel" id="pay-panel-COD">
+                                    <h5 class="fw-bold text-success mb-3"><i class="fas fa-money-bill-wave me-2"></i>Pay on Delivery</h5>
+                                    <div class="alert alert-info small" style="border-radius:12px;">
+                                        <i class="fas fa-info-circle me-2"></i>You can pay in cash or card when the delivery agent delivers your package.
+                                    </div>
+                                    <p class="small text-muted"><strong>Delivery Note:</strong> Packages will be handed over after physical collection/card swiping. Standard pincode constraints apply.</p>
+                                </div>
+
+                                <!-- Credit/Debit Card Option -->
+                                <div class="payment-method-panel d-none" id="pay-panel-Card">
+                                    <h5 class="fw-bold text-primary mb-3"><i class="fas fa-credit-card me-2"></i>Credit or Debit Card</h5>
+                                    
+                                    <!-- Flipping credit card visual UI -->
+                                    <div class="card-wrapper">
+                                        <div class="credit-card-ui" id="creditCardGraphic">
+                                            <div class="card-front">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <i class="fas fa-microchip fs-3 text-warning"></i>
+                                                    <span id="cardBrandText" class="fw-bold fs-5 italic">Card</span>
+                                                </div>
+                                                <div class="fs-4 text-center tracking-wider my-3" id="graphicCardNo">•••• •••• •••• ••••</div>
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <div class="small text-white-50" style="font-size:0.65rem;">CARD HOLDER</div>
+                                                        <div class="fw-bold text-truncate" id="graphicCardName" style="max-width:150px;">NAME SURNAME</div>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <div class="small text-white-50" style="font-size:0.65rem;">EXPIRES</div>
+                                                        <div class="fw-bold" id="graphicCardExp">MM/YY</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="card-back">
+                                                <div class="card-stripe"></div>
+                                                <div class="card-back-cvv" id="graphicCardCvv">CVV</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Form inputs -->
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <label class="form-label small mb-1">Card Holder Name</label>
+                                            <input type="text" name="card_name" id="card_name" class="form-control form-control-sm" placeholder="Name as printed on card" autocomplete="cc-name">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label small mb-1">Card Number</label>
+                                            <input type="text" name="card_number" id="card_number" class="form-control form-control-sm" placeholder="4532 0122 3444 8888" autocomplete="cc-number" inputmode="numeric" maxlength="19">
+                                            <div class="form-text small text-muted">Visa, Mastercard, or RuPay (Enter ending 4444 to simulate failure).</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small mb-1">Expiry Date</label>
+                                            <input type="text" name="card_exp" id="card_exp" class="form-control form-control-sm" placeholder="MM/YY" autocomplete="cc-exp" maxlength="5">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small mb-1">CVV</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="password" name="cvv" id="cvv" class="form-control" placeholder="123" autocomplete="cc-csc" maxlength="4" inputmode="numeric">
+                                                <button type="button" class="btn btn-outline-secondary" onclick="toggleCvvShow()"><i class="fas fa-eye" id="cvvEye"></i></button>
+                                            </div>
+                                            <div class="form-text small text-muted">(Enter 999 to simulate failure).</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- UPI Option -->
+                                <div class="payment-method-panel d-none" id="pay-panel-UPI">
+                                    <h5 class="fw-bold text-primary mb-3"><i class="fas fa-mobile-alt me-2"></i>UPI Payment</h5>
+                                    
+                                    <div class="upi-grid">
+                                        <div class="upi-logo-card selected" onclick="selectUpiProvider('GPay')">GPay</div>
+                                        <div class="upi-logo-card" onclick="selectUpiProvider('PhonePe')">PhonePe</div>
+                                        <div class="upi-logo-card" onclick="selectUpiProvider('Paytm')">Paytm</div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small">Enter UPI ID</label>
+                                        <input type="text" name="upi_id" id="upi_id" class="form-control form-control-sm" placeholder="e.g. user@okhdfcbank">
+                                        <div class="form-text small text-muted">Or enter **fail@upi** to simulate failure.</div>
+                                    </div>
+
+                                    <div class="border rounded p-3 text-center bg-light dark:bg-dark-subtle" style="border-radius:12px;">
+                                        <div class="small fw-bold text-muted mb-2">Simulated Dynamic QR Code Scan</div>
+                                        <div class="d-inline-block bg-white p-2 border rounded shadow-sm mb-2">
+                                            <!-- Simple inline QR placeholder graphic -->
+                                            <i class="fas fa-qrcode display-4 text-dark" style="font-size: 80px;"></i>
+                                        </div>
+                                        <div class="small text-muted mb-2">Copy Merchant UPI ID for testing:</div>
+                                        <div class="d-flex justify-content-center align-items-center gap-2">
+                                            <span class="font-monospace small text-primary" id="merchantUpiId">medicart@okhdfcbank</span>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" onclick="copyMerchantUpi()"><i class="fas fa-copy"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Net Banking Option -->
+                                <div class="payment-method-panel d-none" id="pay-panel-NetBanking">
+                                    <h5 class="fw-bold text-primary mb-3"><i class="fas fa-university me-2"></i>Net Banking</h5>
+                                    
+                                    <div class="mb-3">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-transparent border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                            <input type="text" id="bankSearch" onkeyup="filterBanks()" class="form-control border-start-0" placeholder="Search your bank...">
+                                        </div>
+                                    </div>
+
+                                    <div class="bank-grid" id="bankGridList">
+                                        <div class="bank-card selected" onclick="selectBank('SBI')"><i class="fas fa-landmark text-primary"></i> State Bank of India</div>
+                                        <div class="bank-card" onclick="selectBank('HDFC')"><i class="fas fa-landmark text-danger"></i> HDFC Bank</div>
+                                        <div class="bank-card" onclick="selectBank('ICICI')"><i class="fas fa-landmark text-warning"></i> ICICI Bank</div>
+                                        <div class="bank-card" onclick="selectBank('Axis')"><i class="fas fa-landmark text-secondary"></i> Axis Bank</div>
+                                        <div class="bank-card" onclick="selectBank('Canara')"><i class="fas fa-landmark text-success"></i> Canara Bank</div>
+                                        <div class="bank-card" onclick="selectBank('Indian')"><i class="fas fa-landmark text-info"></i> Indian Bank</div>
+                                    </div>
+                                    <input type="hidden" name="bank_name" id="selectedBankInput" value="SBI">
+                                </div>
+
+                                <!-- Wallet Option -->
+                                <div class="payment-method-panel d-none" id="pay-panel-Wallet">
+                                    <h5 class="fw-bold text-primary mb-3"><i class="fas fa-wallet me-2"></i>Mobile Wallets</h5>
+                                    
+                                    <div class="form-check p-3 border rounded mb-2 bg-white dark:bg-dark" style="border-radius:10px;">
+                                        <input class="form-check-input ms-0 me-2" type="radio" name="wallet_option" id="walletPaytm" value="Paytm" checked>
+                                        <label class="form-check-label" for="walletPaytm"><i class="fab fa-paypal text-primary me-2"></i> Paytm Wallet</label>
+                                    </div>
+                                    <div class="form-check p-3 border rounded mb-2 bg-white dark:bg-dark" style="border-radius:10px;">
+                                        <input class="form-check-input ms-0 me-2" type="radio" name="wallet_option" id="walletAmazon" value="AmazonPay">
+                                        <label class="form-check-label" for="walletAmazon"><i class="fab fa-amazon text-warning me-2"></i> Amazon Pay Wallet</label>
+                                    </div>
+                                    <div class="form-check p-3 border rounded mb-2 bg-white dark:bg-dark" style="border-radius:10px;">
+                                        <input class="form-check-input ms-0 me-2" type="radio" name="wallet_option" id="walletMobikwik" value="Mobikwik">
+                                        <label class="form-check-label" for="walletMobikwik"><i class="fas fa-wallet text-success me-2"></i> Mobikwik Wallet</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom secure badges -->
+                        <div class="d-flex align-items-center justify-content-center gap-3 mt-4 pt-3 border-top text-muted small">
+                            <span><i class="fas fa-shield-alt text-success me-1"></i> SSL 256-bit Secure</span>
+                            <span>•</span>
+                            <span><i class="fas fa-lock text-success me-1"></i> PCI-DSS Compliant</span>
+                            <span>•</span>
+                            <span><i class="fas fa-check-circle text-success me-1"></i> Safe checkout</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" onclick="prevStep(2)" class="btn btn-outline-secondary rounded-pill px-4"><i class="fas fa-arrow-left me-2"></i>Back</button>
+                            <button type="button" onclick="validatePaymentStep()" class="btn btn-primary rounded-pill px-5 btn-lg">Proceed to Confirmation <i class="fas fa-arrow-right ms-2"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 4: CONFIRM ORDER & SUBMIT -->
+                    <div class="card glass-card p-4 checkout-panel" id="panel-4">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-check-double me-2 text-primary"></i>Step 4: Confirm Purchase</h4>
+                        <p class="text-muted small">Double check shipping info and checkout requirements before triggering payment processing.</p>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6 border-end">
+                                <h6 class="fw-bold text-secondary mb-2"><i class="fas fa-map-marker-alt me-1"></i> Delivery Details:</h6>
+                                <p class="small mb-1" id="confirmName"></p>
+                                <p class="small mb-1" id="confirmPhone"></p>
+                                <p class="small mb-1" id="confirmEmail"></p>
+                                <p class="small mb-1 text-muted" id="confirmAddress"></p>
+                            </div>
+                            <div class="col-md-6 px-md-3">
+                                <h6 class="fw-bold text-secondary mb-2"><i class="fas fa-credit-card me-1"></i> Payment Summary:</h6>
+                                <p class="small mb-1"><strong>Payment Mode:</strong> <span id="confirmPaymentMethod" class="badge bg-primary">COD</span></p>
+                                <p class="small mb-1"><strong>Delivery Option:</strong> <span id="confirmDeliveryOption" class="badge bg-secondary">Standard</span></p>
+                                <p class="small mb-3 text-muted">You will receive notifications on confirmation & dispatch cycles.</p>
+                            </div>
+                        </div>
+
+                        <!-- Restricted prescription upload verification alert -->
+                        <div class="alert alert-info mt-4" style="border-radius:12px;">
+                            <h6 class="fw-bold"><i class="fas fa-file-prescription me-2"></i>Prescription Requirements</h6>
+                            <p class="small mb-2">If your basket contains clinical restrictives (e.g., Antibiotics, cardiac drugs), click below to attach your doctor's script.</p>
+                            {{ form.prescription_image }}
+                        </div>
+
+                        <div class="form-check mt-3 mb-4">
+                            <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                            <label class="form-check-label small text-muted" for="termsCheck">
+                                I confirm the patient details are correct and agree to the clinical pharmacy terms and conditions.
+                            </label>
+                        </div>
+
+                        <!-- Fail simulation trigger -->
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" id="simulateFailToggle" onchange="toggleSimulateFail()">
+                            <label class="form-check-label small text-danger fw-bold" for="simulateFailToggle">
+                                <i class="fas fa-bug me-1"></i> Simulate transaction timeout failure
+                            </label>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" onclick="prevStep(3)" class="btn btn-outline-secondary rounded-pill px-4"><i class="fas fa-arrow-left me-2"></i>Back</button>
+                            <button type="button" onclick="submitFinalOrder()" class="btn btn-success rounded-pill px-5 btn-lg shadow"><i class="fas fa-shield-alt me-2"></i>Pay & Confirm Order</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Hand Pricing Column -->
+                <div class="col-md-4">
+                    <div class="card glass-card p-4 h-100">
+                        <h5 class="fw-bold mb-3"><i class="fas fa-receipt me-2 text-primary"></i>Billing Summary</h5>
+                        <ul class="list-group list-group-flush bg-transparent">
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-2 border-0">
+                                <span class="text-muted">Subtotal</span>
+                                <span class="fw-bold">₹<span id="billSubtotal">{{ subtotal }}</span></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-2 border-0 text-danger" id="billDiscountRow" style="display: none;">
+                                <span>Coupon Savings</span>
+                                <span class="fw-bold">-₹<span id="billDiscount">0.00</span></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-2 border-0">
+                                <span class="text-muted">Delivery Charges</span>
+                                <span class="fw-bold">₹<span id="billDelivery">{{ delivery_charges }}</span></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-2 border-0">
+                                <span class="text-muted">GST / Pharmacy Tax (18%)</span>
+                                <span class="fw-bold">₹<span id="billTax">{{ tax_amount }}</span></span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 py-3 border-top fw-bold text-primary fs-5">
+                                <span>Grand Total</span>
+                                <span>₹<span id="billTotal">0.00</span></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
+
+<!-- Heartbeat Processing Overlay -->
+<div id="paymentOverlay">
+    <div class="heartbeat-spinner"></div>
+    <h3 class="fw-bold text-center"><i class="fas fa-lock text-success me-2"></i>Processing Secured Payment</h3>
+    <p class="text-white-50 text-center small mt-2">Connecting with secure payment hub... Do not close or reload this window.</p>
+</div>
+
 <script>
-    // Add Bootstrap classes
-    document.querySelector('#id_address').classList.add('form-control');
-    const prescriptionInput = document.querySelector('#id_prescription_image');
-    if (prescriptionInput) prescriptionInput.classList.add('form-control');
+    // Global checkout state variables
+    let currentStep = 1;
+    const subtotal = parseFloat("{{ subtotal }}");
+    let discount = 0.00;
+    let deliveryCharges = 0.00;
+    
+    // Load discount applied from session storage (coupon)
+    const sessionDiscount = sessionStorage.getItem('medicart_discount');
+    if (sessionDiscount) {
+        discount = parseFloat(sessionDiscount);
+        document.getElementById('billDiscountRow').style.display = 'flex';
+        document.getElementById('billDiscount').innerText = discount.toFixed(2);
+        document.getElementById('discountInput').value = discount.toFixed(2);
+    }
+    
+    // Delivery pricing selector
+    function selectDelivery(option, charge) {
+        // Toggle selected styling
+        document.querySelectorAll('.delivery-card').forEach(card => card.classList.remove('selected'));
+        document.getElementById(`del-${option.replace(' ', '-')}`).classList.add('selected');
+        
+        // Select check
+        document.querySelector(`input[name="delivery_option"][value="${option}"]`).checked = true;
+        
+        // Calculate charges (Standard free above 500)
+        if (option === 'Standard') {
+            deliveryCharges = subtotal > 500 ? 0.00 : 40.00;
+        } else {
+            deliveryCharges = charge;
+        }
+        
+        updateBilling();
+    }
+    
+    // Update total calculations
+    function updateBilling() {
+        const tax = parseFloat((subtotal * 0.18).toFixed(2));
+        const grandTotal = subtotal - discount + deliveryCharges + tax;
+        
+        document.getElementById('billDelivery').innerText = deliveryCharges.toFixed(2);
+        document.getElementById('billTax').innerText = tax.toFixed(2);
+        document.getElementById('billTotal').innerText = grandTotal.toFixed(2);
+    }
+    
+    // Step navigation
+    function nextStep(step) {
+        // Hide all steps
+        document.querySelectorAll('.checkout-panel').forEach(panel => panel.classList.remove('active'));
+        // Show current panel
+        document.getElementById(`panel-${step}`).classList.add('active');
+        
+        // Stepper Progress Indicators
+        document.querySelectorAll('.step-item').forEach(item => {
+            const num = parseInt(item.id.split('-')[1]);
+            if (num < step) {
+                item.classList.add('completed');
+                item.classList.remove('active');
+            } else if (num === step) {
+                item.classList.remove('completed');
+                item.classList.add('active');
+            } else {
+                item.classList.remove('completed');
+                item.classList.remove('active');
+            }
+        });
+        
+        // Progress bar width
+        const progressWidth = ((step - 1) / 3) * 100;
+        document.getElementById('stepProgress').style.width = `${progressWidth}%`;
+        
+        currentStep = step;
+        window.scrollTo({ top: 100, behavior: 'smooth' });
+    }
+    
+    function prevStep(step) {
+        nextStep(step);
+    }
+    
+    // Step 2 Validation (Shipping Address)
+    function validateAddressStep() {
+        const fields = ['id_full_name', 'id_mobile_number', 'id_email', 'id_house_number', 'id_street_address', 'id_city', 'id_state', 'id_pincode'];
+        let valid = true;
+        
+        fields.forEach(fid => {
+            const input = document.getElementById(fid);
+            if (input && !input.value.trim()) {
+                input.classList.add('is-invalid');
+                valid = false;
+            } else if (input) {
+                input.classList.remove('is-invalid');
+            }
+        });
+        
+        // Mobile length
+        const mob = document.getElementById('id_mobile_number');
+        if (mob && mob.value.trim().length < 10) {
+            mob.classList.add('is-invalid');
+            valid = false;
+        }
+        
+        // Pincode validation (6 digits)
+        const pin = document.getElementById('id_pincode');
+        if (pin && !/^\d{6}$/.test(pin.value.trim())) {
+            pin.classList.add('is-invalid');
+            valid = false;
+        }
+
+        if (valid) {
+            // Populate confirmation labels
+            document.getElementById('confirmName').innerText = document.getElementById('id_full_name').value;
+            document.getElementById('confirmPhone').innerText = "Phone: " + document.getElementById('id_mobile_number').value;
+            document.getElementById('confirmEmail').innerText = "Email: " + document.getElementById('id_email').value;
+            
+            const addrStr = `${document.getElementById('id_house_number').value}, ${document.getElementById('id_street_address').value}, ${document.getElementById('id_city').value}, ${document.getElementById('id_state').value} - ${document.getElementById('id_pincode').value}`;
+            document.getElementById('confirmAddress').innerText = addrStr;
+            
+            nextStep(3);
+        } else {
+            showToast("Please fill in all mandatory fields with correct formats.", "danger");
+        }
+    }
+    
+    // Step 3 Payments Selection
+    function setPaymentMethod(method) {
+        document.getElementById('selectedPaymentMethod').value = method;
+        
+        // Set tab highlights
+        document.querySelectorAll('#payment-tabs button').forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+        
+        // Toggle options panels
+        document.querySelectorAll('.payment-method-panel').forEach(panel => panel.classList.add('d-none'));
+        document.getElementById(`pay-panel-${method}`).classList.remove('d-none');
+    }
+    
+    function validatePaymentStep() {
+        const method = document.getElementById('selectedPaymentMethod').value;
+        let valid = true;
+        
+        if (method === 'Card') {
+            const cardNum = document.getElementById('card_number').value.replace(/\s+/g, '');
+            const cardExp = document.getElementById('card_exp').value.trim();
+            const cvv = document.getElementById('cvv').value.trim();
+            const cardName = document.getElementById('card_name').value.trim();
+            
+            if (cardNum.length < 13 || cardNum.length > 19) {
+                document.getElementById('card_number').classList.add('is-invalid');
+                valid = false;
+            } else {
+                document.getElementById('card_number').classList.remove('is-invalid');
+            }
+            
+            if (!/^\d{2}\/\d{2}$/.test(cardExp)) {
+                document.getElementById('card_exp').classList.add('is-invalid');
+                valid = false;
+            } else {
+                document.getElementById('card_exp').classList.remove('is-invalid');
+            }
+            
+            if (cvv.length < 3 || cvv.length > 4) {
+                document.getElementById('cvv').classList.add('is-invalid');
+                valid = false;
+            } else {
+                document.getElementById('cvv').classList.remove('is-invalid');
+            }
+            
+            if (!cardName) {
+                document.getElementById('card_name').classList.add('is-invalid');
+                valid = false;
+            } else {
+                document.getElementById('card_name').classList.remove('is-invalid');
+            }
+        } else if (method === 'UPI') {
+            const upiId = document.getElementById('upi_id').value.trim();
+            if (!upiId.includes('@')) {
+                document.getElementById('upi_id').classList.add('is-invalid');
+                valid = false;
+            } else {
+                document.getElementById('upi_id').classList.remove('is-invalid');
+            }
+        }
+        
+        if (valid) {
+            // Populate Step 4 Confirm Summary
+            document.getElementById('confirmPaymentMethod').innerText = method;
+            
+            const delOpt = document.querySelector('input[name="delivery_option"]:checked').value;
+            document.getElementById('confirmDeliveryOption').innerText = delOpt;
+            
+            nextStep(4);
+        } else {
+            showToast("Please enter valid payment coordinates.", "danger");
+        }
+    }
+    
+    // Live card front-end updates
+    const cardInput = document.getElementById('card_number');
+    if (cardInput) {
+        cardInput.addEventListener('input', function(e) {
+            let target = e.target;
+            let val = target.value.replace(/\D/g, '');
+            // Format 4 digit spaces
+            let formatted = val.replace(/(.{4})/g, '$1 ').trim();
+            target.value = formatted;
+            
+            document.getElementById('graphicCardNo').innerText = formatted || "•••• •••• •••• ••••";
+            
+            // Brand check
+            const brandSpan = document.getElementById('cardBrandText');
+            if (val.startsWith('4')) {
+                brandSpan.innerHTML = '<i class="fab fa-cc-visa text-white"></i> Visa';
+            } else if (val.startsWith('5')) {
+                brandSpan.innerHTML = '<i class="fab fa-cc-mastercard text-white"></i> MasterCard';
+            } else if (val.startsWith('6')) {
+                brandSpan.innerHTML = '<i class="fas fa-credit-card text-white"></i> RuPay';
+            } else {
+                brandSpan.innerText = 'Card';
+            }
+        });
+    }
+    
+    const cardNameInput = document.getElementById('card_name');
+    if (cardNameInput) {
+        cardNameInput.addEventListener('input', function(e) {
+            document.getElementById('graphicCardName').innerText = e.target.value.toUpperCase() || "NAME SURNAME";
+        });
+    }
+
+    const cardExpInput = document.getElementById('card_exp');
+    if (cardExpInput) {
+        cardExpInput.addEventListener('input', function(e) {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length > 2) {
+                val = val.substring(0,2) + '/' + val.substring(2,4);
+            }
+            e.target.value = val;
+            document.getElementById('graphicCardExp').innerText = val || "MM/YY";
+        });
+    }
+    
+    // CVV flip interaction
+    const cvvInput = document.getElementById('cvv');
+    if (cvvInput) {
+        cvvInput.addEventListener('focus', function() {
+            document.getElementById('creditCardGraphic').classList.add('flipped');
+        });
+        cvvInput.addEventListener('blur', function() {
+            document.getElementById('creditCardGraphic').classList.remove('flipped');
+        });
+        cvvInput.addEventListener('input', function(e) {
+            document.getElementById('graphicCardCvv').innerText = e.target.value || "CVV";
+        });
+    }
+    
+    function toggleCvvShow() {
+        const type = cvvInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        cvvInput.setAttribute('type', type);
+        document.getElementById('cvvEye').classList.toggle('fa-eye');
+        document.getElementById('cvvEye').classList.toggle('fa-eye-slash');
+    }
+    
+    // Net banking search filter
+    function filterBanks() {
+        const query = document.getElementById('bankSearch').value.toLowerCase();
+        document.querySelectorAll('.bank-card').forEach(card => {
+            const name = card.innerText.toLowerCase();
+            if (name.includes(query)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    function selectBank(bank) {
+        document.querySelectorAll('.bank-card').forEach(card => card.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+        document.getElementById('selectedBankInput').value = bank;
+    }
+    
+    function selectUpiProvider(provider) {
+        document.querySelectorAll('.upi-logo-card').forEach(card => card.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+    }
+
+    function copyMerchantUpi() {
+        navigator.clipboard.writeText("medicart@okhdfcbank");
+        showToast("Merchant UPI ID copied!", "success");
+    }
+
+    function toggleSimulateFail() {
+        const toggle = document.getElementById('simulateFailToggle');
+        document.getElementById('forceFailInput').value = toggle.checked ? "true" : "false";
+    }
+
+    // Checkout session timer countdown (10 minutes)
+    let timeRemaining = 600; // seconds
+    const timerInterval = setInterval(() => {
+        timeRemaining--;
+        if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            document.getElementById('timer').innerText = "0:00";
+            showToast("Your checkout session has expired. Redirecting to cart...", "danger");
+            setTimeout(() => {
+                window.location.href = "{% url 'cart_view' %}";
+            }, 3000);
+        } else {
+            const mins = Math.floor(timeRemaining / 60);
+            const secs = timeRemaining % 60;
+            document.getElementById('timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+    }, 1000);
+
+    function extendSession() {
+        timeRemaining = 600;
+        showToast("Checkout session extended successfully.", "success");
+    }
+
+    // Submit Action with 3D-secure loader overlay simulation
+    function submitFinalOrder() {
+        const tc = document.getElementById('termsCheck');
+        if (!tc.checked) {
+            showToast("You must agree to the clinical terms and conditions to place your order.", "danger");
+            return;
+        }
+        
+        // Show simulated payment hub overlay
+        document.getElementById('paymentOverlay').classList.add('active');
+        
+        // Delay form post for 2 seconds to showcase premium simulation transitions
+        setTimeout(() => {
+            document.getElementById('checkoutForm').submit();
+        }, 2000);
+    }
+    
+    // Init billing prices
+    selectDelivery('Standard', 40.00);
 </script>
 {% endblock %}

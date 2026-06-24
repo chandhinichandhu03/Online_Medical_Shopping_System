@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Order Confirmed - MediCart{% endblock %}
+
+{% block content %}
+<style>
+    /* Success Page Styles */
+    .success-card {
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.05);
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    body.dark-mode .success-card {
+        background: rgba(15, 23, 42, 0.6);
+        border-color: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Dynamic Checkmark Animation */
+    .success-icon-wrap {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: rgba(16, 185, 129, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+    .checkmark {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: block;
+        stroke-width: 2;
+        stroke: #10b981;
+        stroke-miterlimit: 10;
+        box-shadow: inset 0px 0px 0px #10b981;
+        animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out 0s both;
+    }
+    .checkmark__circle {
+        stroke-dasharray: 166;
+        stroke-dashoffset: 166;
+        stroke-width: 2;
+        stroke-miterlimit: 10;
+        stroke: #10b981;
+        fill: none;
+        animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    .checkmark__check {
+        transform-origin: 50% 50%;
+        stroke-dasharray: 48;
+        stroke-dashoffset: 48;
+        animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.6s forwards;
+    }
+    @keyframes stroke {
+        100% { stroke-dashoffset: 0; }
+    }
+    @keyframes scale {
+        0%, 100% { transform: none; }
+        50% { transform: scale3d(1.1, 1.1, 1); }
+    }
+    @keyframes fill {
+        100% { box-shadow: inset 0px 0px 0px 30px #10b981; }
+    }
+
+    #confettiCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+    }
+    .success-content {
+        position: relative;
+        z-index: 1;
+    }
+</style>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8 col-lg-6">
+        <div class="card success-card p-5">
+            <!-- Confetti Canvas overlay -->
+            <canvas id="confettiCanvas"></canvas>
+
+            <div class="success-content text-center">
+                <div class="success-icon-wrap">
+                    <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                        <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+                        <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                    </svg>
+                </div>
+
+                <h2 class="fw-bold text-success mb-2">Payment Successful!</h2>
+                <p class="text-muted small mb-4">Your transaction has been processed securely. Your order has been placed on the authenticity ledger.</p>
+
+                <!-- Transaction details block -->
+                <div class="bg-light dark:bg-dark-subtle p-3 rounded-4 mb-4 border text-start" style="border-radius:15px;">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Order ID</span>
+                        <strong class="small">#{{ order.id }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Invoice Number</span>
+                        <strong class="small">{{ order.invoice_number }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Transaction ID</span>
+                        <span class="font-monospace small text-truncate" style="max-width:180px;">{{ order.transaction_id }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Estimated Delivery</span>
+                        <strong class="small text-primary"><i class="fas fa-shipping-fast me-1"></i>{{ order.estimated_delivery_date }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Payment Mode</span>
+                        <span class="badge bg-success small">{{ order.payment_method }}</span>
+                    </div>
+                </div>
+
+                <!-- Action Button Matrix -->
+                <div class="d-grid gap-2">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'download_invoice' order.id %}" class="btn btn-outline-danger w-100 rounded-pill"><i class="fas fa-file-pdf me-2"></i>Invoice PDF</a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'order_tracking' order.id %}" class="btn btn-primary w-100 rounded-pill"><i class="fas fa-route me-2"></i>Track Order</a>
+                        </div>
+                    </div>
+                    
+                    <button onclick="shareOrderDetails()" class="btn btn-outline-secondary rounded-pill mt-2"><i class="fas fa-share-alt me-2"></i>Share Order Details</button>
+                    <a href="{% url 'medicine_list' %}" class="btn btn-link text-muted small mt-2">Continue Shopping</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Pure JS Confetti script to operate completely offline
+    const canvas = document.getElementById('confettiCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width = canvas.width = canvas.offsetWidth;
+    let height = canvas.height = canvas.offsetHeight;
+    
+    window.addEventListener('resize', () => {
+        width = canvas.width = canvas.offsetWidth;
+        height = canvas.height = canvas.offsetHeight;
+    });
+    
+    const colors = ['#f43f5e', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6'];
+    const confettis = [];
+    
+    for (let i = 0; i < 100; i++) {
+        confettis.push({
+            x: Math.random() * width,
+            y: Math.random() * -height - 20,
+            r: Math.random() * 6 + 4,
+            d: Math.random() * height,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            tilt: Math.random() * 10 - 5,
+            tiltAngleIncremental: Math.random() * 0.07 + 0.02,
+            tiltAngle: 0
+        });
+    }
+    
+    let active = true;
+    setTimeout(() => active = false, 4000); // Stop confetti generation after 4s
+    
+    function draw() {
+        ctx.clearRect(0, 0, width, height);
+        
+        confettis.forEach((c, index) => {
+            c.tiltAngle += c.tiltAngleIncremental;
+            c.y += (Math.cos(c.d) + 3 + c.r / 2) / 2;
+            c.x += Math.sin(c.tiltAngle);
+            c.tilt = Math.sin(c.tiltAngle - (index / 3)) * 15;
+            
+            ctx.beginPath();
+            ctx.lineWidth = c.r;
+            ctx.strokeStyle = c.color;
+            ctx.moveTo(c.x + c.tilt + c.r / 2, c.y);
+            ctx.lineTo(c.x + c.tilt, c.y + c.tilt + c.r / 2);
+            ctx.stroke();
+            
+            // Loop back to top
+            if (c.y > height) {
+                if (active) {
+                    c.x = Math.random() * width;
+                    c.y = -20;
+                    c.tilt = Math.random() * 10 - 5;
+                }
+            }
+        });
+        
+        requestAnimationFrame(draw);
+    }
+    
+    draw();
+
+    // Share Details
+    function shareOrderDetails() {
+        const text = `I just placed an order on MediCart! Order ID: #{{ order.id }}. Invoice: {{ order.invoice_number }}. Est Arrival: {{ order.estimated_delivery_date }}`;
+        navigator.clipboard.writeText(text);
+        showToast("Order copy logs saved to clipboard!", "success");
+    }
+</script>
+{% endblock %}

@@ -1,71 +1,155 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Your Cart - MediCart{% endblock %}
+{% block title %}Shopping Cart - MediCart{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2 class="mb-4">Shopping Cart</h2>
-        {% if cart.items.exists %}
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Medicine</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Subtotal</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in cart.items.all %}
-                    <tr>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                {% if item.medicine.image %}
-                                <img src="{{ item.medicine.image.url }}" alt=""
-                                    style="width: 50px; height: 50px; object-fit: contain;" class="me-3">
-                                {% else %}
-                                <div class="bg-light d-flex align-items-center justify-content-center me-3"
-                                    style="width: 50px; height: 50px;"><i class="fas fa-pills text-muted"></i></div>
-                                {% endif %}
-                                <h6 class="mb-0">{{ item.medicine.name }}</h6>
+<div class="container my-4">
+    <h2 class="fw-bold mb-4 text-dark"><i class="fas fa-shopping-bag text-primary me-2"></i>Your Shopping Cart</h2>
+
+    {% if cart.items.exists %}
+    <div class="row g-4">
+        <!-- Cart Items List (Col 8) -->
+        <div class="col-lg-8">
+            <div class="d-flex flex-column gap-3">
+                {% for item in cart.items.all %}
+                <div class="card border-0 shadow-sm p-3" style="border-radius: 20px;">
+                    <div class="row align-items-center g-3">
+                        <!-- Product Image -->
+                        <div class="col-md-2 text-center">
+                            {% if item.medicine.image %}
+                            <img src="{{ item.medicine.image.url }}" alt="{{ item.medicine.name }}" class="img-fluid" style="max-height: 80px; object-fit: contain; border-radius: 12px;">
+                            {% else %}
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; margin: 0 auto;">
+                                <i class="fas fa-pills text-muted fa-2x"></i>
                             </div>
-                        </td>
-                        <td>₹{{ item.medicine.price }}</td>
-                        <td>{{ item.quantity }}</td>
-                        <td>₹{{ item.total_price }}</td>
-                        <td>
-                            <a href="{% url 'remove_from_cart' item.pk %}" class="btn btn-sm btn-outline-danger"><i
-                                    class="fas fa-trash"></i></a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot class="table-light">
-                    <tr>
-                        <td colspan="3" class="text-end fw-bold">Total:</td>
-                        <td colspan="2" class="fw-bold fs-5 text-primary">₹{{ cart.total_price }}</td>
-                    </tr>
-                </tfoot>
-            </table>
+                            {% endif %}
+                        </div>
+
+                        <!-- Product Title & Details -->
+                        <div class="col-md-5">
+                            <h6 class="fw-bold text-dark mb-1">{{ item.medicine.name }}</h6>
+                            <p class="small text-muted mb-1">{{ item.medicine.brand_name }}</p>
+                            <small class="text-xs text-muted">Batch: {{ item.medicine.batch_number }}</small>
+                            {% if item.medicine.is_prescription_required %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-block mt-1" style="width: fit-content; font-size: 10px;">Rx Required</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Price -->
+                        <div class="col-md-2 text-center">
+                            <span class="text-muted small d-block">Unit Price</span>
+                            <span class="fw-bold text-dark">₹{{ item.medicine.price }}</span>
+                        </div>
+
+                        <!-- Quantity Selector -->
+                        <div class="col-md-2 text-center">
+                            <span class="text-muted small d-block mb-1">Quantity</span>
+                            <span class="badge bg-light text-dark border px-3 py-2 fs-6" style="border-radius: 50px;">{{ item.quantity }}</span>
+                        </div>
+
+                        <!-- Action/Delete -->
+                        <div class="col-md-1 text-center">
+                            <a href="{% url 'remove_from_cart' item.pk %}" class="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 36px; height: 36px;" title="Remove Item">
+                                <i class="fas fa-trash-alt"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-4">
+                <a href="{% url 'medicine_list' %}" class="btn btn-outline-primary rounded-pill px-4"><i class="fas fa-arrow-left me-2"></i>Continue Shopping</a>
+            </div>
         </div>
 
-        <div class="d-flex justify-content-between mt-4">
-            <a href="{% url 'medicine_list' %}" class="btn btn-outline-secondary"><i
-                    class="fas fa-arrow-left me-2"></i>Continue Shopping</a>
-            <a href="{% url 'checkout' %}" class="btn btn-success btn-lg">Proceed to Checkout <i
-                    class="fas fa-arrow-right ms-2"></i></a>
-        </div>
+        <!-- Order Summary Card (Col 4) -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4 sticky-top" style="top: 100px; border-radius: 24px;">
+                <h5 class="fw-bold text-dark mb-4"><i class="fas fa-file-invoice-dollar me-2 text-primary"></i>Order Summary</h5>
 
-        {% else %}
-        <div class="alert alert-info py-5 text-center">
-            <h4>Your cart is empty.</h4>
-            <p>Browse our medicines and find what you need.</p>
-            <a href="{% url 'medicine_list' %}" class="btn btn-primary mt-3">Browse Medicines</a>
+                <!-- Price breakdown -->
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Subtotal</span>
+                    <span class="text-dark fw-bold" id="cartSubtotal">₹{{ cart.total_price }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2" id="discountBlock" style="display: none !important;">
+                    <span class="text-danger">Discount (10%)</span>
+                    <span class="text-danger fw-bold" id="cartDiscount">-₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Shipping Fee</span>
+                    <span class="text-success fw-bold">FREE</span>
+                </div>
+                <hr class="my-3">
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="h6 fw-bold mb-0">Total Amount</span>
+                    <span class="h5 text-primary fw-bold mb-0" id="cartTotal">₹{{ cart.total_price }}</span>
+                </div>
+
+                <!-- Coupon Promo Section -->
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-2">Have a Coupon?</label>
+                    <div class="input-group">
+                        <input type="text" id="couponCode" class="form-control rounded-start-pill px-3" placeholder="e.g. HEALTH10">
+                        <button type="button" onclick="applyCoupon()" class="btn btn-outline-primary rounded-end-pill px-3">Apply</button>
+                    </div>
+                    <div id="couponAlert" class="small mt-2" style="display: none;"></div>
+                </div>
+
+                <a href="{% url 'checkout' %}" class="btn btn-primary w-100 rounded-pill py-3 fw-bold fs-6">Proceed to Checkout <i class="fas fa-chevron-right ms-2"></i></a>
+            </div>
         </div>
-        {% endif %}
     </div>
+
+    {% else %}
+    <div class="card border-0 shadow-sm py-5 text-center my-4" style="border-radius: 24px;">
+        <div class="card-body">
+            <div class="display-1 text-muted opacity-25 mb-3"><i class="fas fa-shopping-cart"></i></div>
+            <h4 class="fw-bold">Your shopping cart is empty</h4>
+            <p class="text-muted">Explore our 10 categories of genuine medicines and healthcare items.</p>
+            <a href="{% url 'medicine_list' %}" class="btn btn-primary rounded-pill px-4 py-2 mt-3">Start Shopping</a>
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+    // Simple client-side coupon applicator for the checkout experience
+    const baseTotal = parseFloat("{{ cart.total_price }}");
+    
+    function applyCoupon() {
+        const codeInput = document.getElementById('couponCode');
+        const code = codeInput.value.trim().toUpperCase();
+        const alertBox = document.getElementById('couponAlert');
+        const discountBlock = document.getElementById('discountBlock');
+        const discountVal = document.getElementById('cartDiscount');
+        const totalVal = document.getElementById('cartTotal');
+        
+        if (code === 'HEALTH10') {
+            const savings = baseTotal * 0.10;
+            const newTotal = baseTotal - savings;
+            
+            discountVal.innerText = `-₹${savings.toFixed(2)}`;
+            totalVal.innerText = `₹${newTotal.toFixed(2)}`;
+            
+            discountBlock.setAttribute('style', 'display: flex !important;');
+            
+            alertBox.className = 'small mt-2 text-success fw-bold';
+            alertBox.innerHTML = '<i class="fas fa-check-circle me-1"></i>Coupon "HEALTH10" applied successfully! Saved 10%.';
+            alertBox.style.display = 'block';
+            
+            // Set session storage so the checkout page can access the discount!
+            sessionStorage.setItem('medicart_discount', savings.toFixed(2));
+        } else {
+            alertBox.className = 'small mt-2 text-danger fw-bold';
+            alertBox.innerHTML = '<i class="fas fa-times-circle me-1"></i>Invalid coupon code. Try "HEALTH10".';
+            alertBox.style.display = 'block';
+            discountBlock.setAttribute('style', 'display: none !important;');
+            totalVal.innerText = `₹${baseTotal.toFixed(2)}`;
+            sessionStorage.removeItem('medicart_discount');
+        }
+    }
+</script>
 {% endblock %}

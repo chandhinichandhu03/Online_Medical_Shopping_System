@@ -3,168 +3,282 @@
 
 {% block content %}
 <!-- Hero Section -->
-<div class="hero-section mb-5 shadow-sm">
+<div class="hero-section mb-5 shadow-sm p-5 bg-light position-relative" style="border-radius: 30px; overflow: visible;">
     <div class="row align-items-center">
-        <div class="col-lg-6">
+        <div class="col-lg-7">
             {% if thought_text %}
-            <span
-                class="badge bg-white text-primary mb-3 shadow-none border border-primary-subtle px-3 py-2 rounded-pill">
-                <i class="fas fa-lightbulb me-2"></i>{{ thought_text }}
+            <span class="badge bg-white text-primary mb-3 shadow-sm border border-primary-subtle px-3 py-2 rounded-pill">
+                <i class="fas fa-hand-holding-heart me-2"></i>{{ thought_text }}
             </span>
             {% endif %}
-            <h1 class="display-4 fw-bold mb-3">Your Health, <br><span class="text-primary">Delivered.</span></h1>
-            <p class="lead text-muted mb-4">Order authentic medicines, supplements, and healthcare products with ease.
-                Now serving Pet care and First Aid needs.</p>
+            <h1 class="display-5 fw-bold mb-3 text-dark">Your Health, <br><span class="text-primary">Delivered Locally.</span></h1>
+            <p class="lead text-muted mb-4">Order genuine medicines, wellness supplements, first aid kits, baby care, and pet care. Everything works completely offline.</p>
+            
+            <!-- Dynamic Autocomplete Search Bar -->
+            <div class="search-wrapper mb-4 position-relative" style="max-width: 550px; z-index: 1050;">
+                <form action="{% url 'medicine_list' %}" method="get" class="d-flex gap-2">
+                    <div class="position-relative flex-grow-1">
+                        <input type="text" name="q" id="autocompleteSearch" class="form-control form-control-lg rounded-pill px-4 shadow-sm border-2 border-primary-subtle" placeholder="Search medicines, brands, ingredients..." autocomplete="off" required>
+                        <!-- Voice Search Trigger -->
+                        <button type="button" onclick="startHomeVoiceSearch()" class="btn voice-search-btn text-primary" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); border: none; background: none;">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm"><i class="fas fa-search me-1"></i>Search</button>
+                </form>
+                
+                <!-- Autocomplete Dropdown Drawer -->
+                <div id="autocompleteDropdown" class="dropdown-menu shadow-lg border-0 w-100 p-2 mt-2" style="display: none; border-radius: 16px; max-height: 350px; overflow-y: auto;">
+                    <!-- Filled by JavaScript -->
+                </div>
+            </div>
+
             <div class="d-flex gap-2">
-                <a href="{% url 'medicine_list' %}" class="btn btn-primary btn-lg rounded-pill px-4 shadow">Shop
-                    Medicines</a>
-                <a href="{% url 'symptom_checker' %}" class="btn btn-outline-primary btn-lg rounded-pill px-4">AI
-                    Symptom Check</a>
+                <a href="{% url 'doctor_chat' %}" class="btn btn-teal rounded-pill px-4 py-2 text-white" style="background-color: #0d9488;"><i class="fas fa-user-md me-2"></i>AI Doctor Chat</a>
+                <a href="{% url 'symptom_checker' %}" class="btn btn-outline-primary rounded-pill px-4 py-2"><i class="fas fa-notes-medical me-2"></i>Symptom Checker</a>
             </div>
         </div>
-        <div class="col-lg-6 text-center d-none d-lg-block">
-            <img src="https://img.freepik.com/free-vector/health-professional-team-concept-illustration_114360-1618.jpg?w=740"
-                alt="Medical Illustration" class="img-fluid" style="max-height: 400px; mix-blend-mode: multiply;">
+        <div class="col-lg-5 text-center d-none d-lg-block">
+            <img src="https://img.freepik.com/free-vector/health-professional-team-concept-illustration_114360-1618.jpg?w=740" alt="Pharmacy Banner" class="img-fluid rounded-3" style="max-height: 320px; mix-blend-mode: multiply;">
         </div>
     </div>
 </div>
 
-<!-- Category Quick Links -->
-<div class="d-flex justify-content-center flex-wrap gap-3 mb-5">
-    <a href="{% url 'medicine_list' %}?q=Tablet" class="category-pill"><i class="fas fa-pills me-2"></i>Tablets</a>
-    <a href="{% url 'medicine_list' %}?q=Syrup" class="category-pill"><i
-            class="fas fa-prescription-bottle me-2"></i>Syrups</a>
-    <a href="{% url 'medicine_list' %}?q=Ointment" class="category-pill"><i
-            class="fas fa-pump-soap me-2"></i>Ointments</a>
-    <a href="{% url 'medicine_list' %}?q=First Aid" class="category-pill"><i
-            class="fas fa-briefcase-medical me-2"></i>First Aid</a>
-    <a href="{% url 'medicine_list' %}?q=Pet" class="category-pill"><i class="fas fa-dog me-2"></i>Pet Care</a>
-    <a href="{% url 'medicine_list' %}?q=Syringes" class="category-pill"><i class="fas fa-syringe me-2"></i>Syringes</a>
+<!-- 10 Categories Grid Section -->
+<h3 class="fw-bold mb-4"><i class="fas fa-shapes text-primary me-2"></i>Shop by Category</h3>
+<div class="row row-cols-2 row-cols-md-5 g-3 mb-5">
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=1" class="category-pill justify-content-center p-3" style="border-left: 5px solid #7b2cbf;">
+            <i class="fas fa-pills text-purple fa-lg"></i>
+            <span>Tablets</span>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=2" class="category-pill justify-content-center p-3" style="border-left: 5px solid #d90429;">
+            <i class="fas fa-prescription-bottle text-danger fa-lg"></i>
+            <span>Syrups</span>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=3" class="category-pill justify-content-center p-3" style="border-left: 5px solid #38b000;">
+            <i class="fas fa-pump-soap text-success fa-lg"></i>
+            <span>Ointments</span>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=4" class="category-pill justify-content-center p-3" style="border-left: 5px solid #ffb703;">
+            <i class="fas fa-briefcase-medical text-warning fa-lg"></i>
+            <span>First Aid</span>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=5" class="category-pill justify-content-center p-3" style="border-left: 5px solid #fb8500;">
+            <i class="fas fa-dog text-orange fa-lg"></i>
+            <span>Pet Care</span>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=6" class="category-pill justify-content-center p-3" style="border-left: 5px solid #2ec4b6;">
+            <i class="fas fa-syringe text-info fa-lg"></i>
+            <span>Syringes</span>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=7" class="category-pill justify-content-center p-3" style="border-left: 5px solid #00f5d4;">
+            <i class="fas fa-vial text-teal fa-lg"></i>
+            <span>Injections</span>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=8" class="category-pill justify-content-center p-3" style="border-left: 5px solid #9b5de5;">
+            <i class="fas fa-heartbeat text-violet fa-lg"></i>
+            <span>Wellness</span>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=9" class="category-pill justify-content-center p-3" style="border-left: 5px solid #ff9f1c;">
+            <i class="fas fa-baby text-pink fa-lg"></i>
+            <span>Baby Care</span>
+        </a>
+    </div>
+    <div class="col">
+        <a href="{% url 'medicine_list' %}?category=10" class="category-pill justify-content-center p-3" style="border-left: 5px solid #606c38;">
+            <i class="fas fa-leaf text-success fa-lg"></i>
+            <span>Ayurveda</span>
+        </a>
+    </div>
 </div>
 
-<!-- Featured Section -->
-<div class="section-title text-center">
-    <h2>Featured Products</h2>
+<!-- Featured Products Section -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0"><i class="fas fa-fire text-danger me-2"></i>Featured Medicines</h3>
+    <a href="{% url 'medicine_list' %}" class="text-primary text-decoration-none fw-bold small">View All <i class="fas fa-chevron-right ms-1"></i></a>
 </div>
 
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4 mb-5">
     {% for medicine in featured_medicines %}
     <div class="col">
-        <div class="card h-100 border-0">
-            <div class="card-img-top text-center p-4 bg-light position-relative">
+        <div class="card h-100 border-0 shadow-sm position-relative overflow-hidden" style="border-radius: 20px;">
+            <!-- Discount Badge -->
+            {% if medicine.discount_percent > 0 %}
+            <span class="badge bg-danger position-absolute top-0 start-0 m-3 px-3 py-2 rounded-pill z-3 shadow-sm" style="z-index: 10;">Save {{ medicine.discount_percent }}%</span>
+            {% endif %}
+            
+            <!-- Category Label & Image -->
+            <div class="text-center p-4 bg-light position-relative d-flex align-items-center justify-content-center" style="height: 180px;">
                 {% if medicine.image %}
-                <img src="{{ medicine.image.url }}" class="img-fluid" alt="{{ medicine.name }}"
-                    style="height: 150px; object-fit: contain;">
+                <img src="{{ medicine.image.url }}" class="img-fluid" alt="{{ medicine.name }}" style="height: 140px; object-fit: contain; transition: transform 0.3s ease;">
                 {% else %}
                 <i class="fas fa-pills fa-4x text-muted opacity-25"></i>
                 {% endif %}
-                <span class="badge bg-white text-dark shadow-sm position-absolute top-0 start-0 m-3">{{
-                    medicine.category.name }}</span>
+                <span class="badge bg-white text-dark shadow-sm position-absolute bottom-0 end-0 m-2">{{ medicine.category.name }}</span>
             </div>
-            <div class="card-body">
-                <h5 class="card-title fw-bold text-dark">{{ medicine.name }}</h5>
+
+            <!-- Card Body Info -->
+            <div class="card-body p-4 d-flex flex-column">
+                <h6 class="card-title fw-bold mb-1 text-dark">{{ medicine.name }}</h6>
                 <p class="small text-muted mb-2">{{ medicine.brand_name }}</p>
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                    <h5 class="mb-0 text-primary fw-bold">₹{{ medicine.price }}</h5>
-                    <a href="{% url 'medicine_detail' medicine.pk %}"
-                        class="btn btn-sm btn-outline-primary rounded-circle"
-                        style="width: 35px; height: 35px; padding: 6px;"><i class="fas fa-arrow-right"></i></a>
+                
+                <!-- Stars & Review Count -->
+                <div class="d-flex align-items-center gap-1 mb-3">
+                    <div class="text-warning small">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-alt"></i>
+                    </div>
+                    <span class="text-xs text-muted">({{ medicine.review_count }})</span>
+                </div>
+
+                <!-- Price and Add to Cart Section -->
+                <div class="mt-auto d-flex justify-content-between align-items-center">
+                    <div>
+                        {% if medicine.discount_percent > 0 %}
+                        <small class="text-muted text-decoration-line-through">₹{{ medicine.original_price }}</small>
+                        <h5 class="mb-0 text-primary fw-bold">₹{{ medicine.price }}</h5>
+                        {% else %}
+                        <h5 class="mb-0 text-primary fw-bold">₹{{ medicine.price }}</h5>
+                        {% endif %}
+                        
+                        <!-- Stock Status -->
+                        {% if medicine.stock < 15 %}
+                        <small class="text-danger fw-bold"><i class="fas fa-exclamation-circle me-1"></i>Low Stock</small>
+                        {% else %}
+                        <small class="text-success"><i class="fas fa-check-circle me-1"></i>In Stock</small>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Detail Action Page -->
+                    <a href="{% url 'medicine_detail' medicine.pk %}" class="btn btn-primary rounded-pill px-3 py-2 btn-sm"><i class="fas fa-shopping-cart me-1"></i>View Details</a>
                 </div>
             </div>
         </div>
     </div>
     {% empty %}
-    <div class="col-12 text-center text-muted">No medicines added yet.</div>
+    <div class="col-12 text-center text-muted">No medicines seeded yet. Run populate_db script first.</div>
     {% endfor %}
 </div>
 
-<!-- Pet Care Banner -->
-<div class="card border-0 bg-secondary text-white mb-5 overflow-hidden shadow-lg"
-    style="background: linear-gradient(45deg, #0077b6, #00b4d8);">
-    <div class="card-body p-5">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h2 class="fw-bold mb-3"><i class="fas fa-paw me-2"></i>New: Pet Care Section</h2>
-                <p class="fs-5 opacity-75">We now stock essential medicines and supplements for your furry friends. From
-                    vitamins to first aid, get everything delivered.</p>
-                <a href="{% url 'medicine_list' %}?q=Pet"
-                    class="btn btn-light text-primary fw-bold rounded-pill mt-3 px-4">Shop Pet Care</a>
-            </div>
-            <div class="col-md-4 text-center d-none d-md-block">
-                <i class="fas fa-cat fa-8x opacity-25"></i>
+<!-- Promo Banners Section -->
+<div class="row g-4 mb-5">
+    <div class="col-md-6">
+        <div class="card border-0 bg-primary text-white overflow-hidden shadow-lg h-100" style="background: linear-gradient(135deg, #0f766e, #0d9488); border-radius: 24px;">
+            <div class="card-body p-5">
+                <h3 class="fw-bold mb-3"><i class="fas fa-laptop-medical me-2"></i>Consult Dr. Llama Offline</h3>
+                <p class="opacity-75">Experiencing stomach ache, cough, or allergy? Ask Dr. Llama clinical consultant for direct dosage information, precautions, and remedies entirely offline.</p>
+                <a href="{% url 'doctor_chat' %}" class="btn btn-light text-teal fw-bold rounded-pill mt-3 px-4 py-2">Consult Now</a>
             </div>
         </div>
     </div>
-</div>
-<!-- Stats Section -->
-<div class="row mb-5 text-center">
-    <div class="col-md-3 col-6 mb-4">
-        <div class="p-4 bg-white rounded-3 shadow-sm hover-up">
-            <h2 class="fw-bold text-primary display-5">10k+</h2>
-            <p class="text-muted mb-0">Products</p>
-        </div>
-    </div>
-    <div class="col-md-3 col-6 mb-4">
-        <div class="p-4 bg-white rounded-3 shadow-sm hover-up">
-            <h2 class="fw-bold text-primary display-5">50k+</h2>
-            <p class="text-muted mb-0">Happy Customers</p>
-        </div>
-    </div>
-    <div class="col-md-3 col-6 mb-4">
-        <div class="p-4 bg-white rounded-3 shadow-sm hover-up">
-            <h2 class="fw-bold text-primary display-5">100%</h2>
-            <p class="text-muted mb-0">Genuine Meds</p>
-        </div>
-    </div>
-    <div class="col-md-3 col-6 mb-4">
-        <div class="p-4 bg-white rounded-3 shadow-sm hover-up">
-            <h2 class="fw-bold text-primary display-5">24/7</h2>
-            <p class="text-muted mb-0">Expert Support</p>
+    <div class="col-md-6">
+        <div class="card border-0 bg-primary text-white overflow-hidden shadow-lg h-100" style="background: linear-gradient(135deg, #7b2cbf, #5a189a); border-radius: 24px;">
+            <div class="card-body p-5">
+                <h3 class="fw-bold mb-3"><i class="fas fa-cubes me-2"></i>Blockchain Authenticity Chain</h3>
+                <p class="opacity-75">Check product batch safety verification. We log manufacturing and pharmacist validation hashes in an authenticity blockchain ledger to stop counterfeit sales.</p>
+                <a href="{% url 'blockchain_ledger' %}" class="btn btn-light text-purple fw-bold rounded-pill mt-3 px-4 py-2">Audit Ledger</a>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Testimonials Carousel -->
-<div class="mb-5">
-    <h3 class="fw-bold text-center mb-4">What Our Users Say</h3>
-    <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel">
-        <div class="carousel-inner">
-            <div class="carousel-item active text-center">
-                <div class="card border-0 shadow-sm mx-auto" style="max-width: 600px;">
-                    <div class="card-body p-4">
-                        <p class="lead fst-italic">"MediCart is a lifesaver! I ordered medicines for my parents, and
-                            they were delivered within hours. The app is so easy to use."</p>
-                        <h6 class="fw-bold text-primary">- Priya Sharma, Bangalore</h6>
-                    </div>
-                </div>
-            </div>
-            <div class="carousel-item text-center">
-                <div class="card border-0 shadow-sm mx-auto" style="max-width: 600px;">
-                    <div class="card-body p-4">
-                        <p class="lead fst-italic">"The AI Symptom Checker is surprisingly accurate. It helped me decide
-                            to see a doctor for my persistent headache. Great feature!"</p>
-                        <h6 class="fw-bold text-primary">- Rahul Verma, Mumbai</h6>
-                    </div>
-                </div>
-            </div>
-            <div class="carousel-item text-center">
-                <div class="card border-0 shadow-sm mx-auto" style="max-width: 600px;">
-                    <div class="card-body p-4">
-                        <p class="lead fst-italic">"I love the Pet Care section. It's hard to find authentic pet meds
-                            online, but MediCart has everything I need for my dog."</p>
-                        <h6 class="fw-bold text-primary">- Anjali Gupta, Delhi</h6>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <button class="carousel-control-prev" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon bg-primary rounded-circle" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next">
-            <span class="carousel-control-next-icon bg-primary rounded-circle" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-        </button>
-    </div>
-</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 1. Instant Autocomplete Search Javascript
+    const searchInput = document.getElementById('autocompleteSearch');
+    const dropdown = document.getElementById('autocompleteDropdown');
+    
+    searchInput.addEventListener('input', async function() {
+        const query = searchInput.value.trim();
+        if (query.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/search/?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+                dropdown.innerHTML = '';
+                data.results.forEach(item => {
+                    dropdown.innerHTML += `
+                        <a href="/medicine/${item.id}/" class="dropdown-item d-flex align-items-center gap-3 py-2 border-bottom border-light">
+                            <img src="${item.image || 'https://via.placeholder.com/40'}" style="width: 40px; height: 40px; object-fit: contain; border-radius: 8px;">
+                            <div>
+                                <span class="fw-bold text-dark d-block">${item.name}</span>
+                                <small class="text-muted text-xs">${item.brand} | INR ${item.price} (${item.category})</small>
+                            </div>
+                        </a>
+                    `;
+                });
+                dropdown.style.display = 'block';
+            } else {
+                dropdown.innerHTML = '<div class="text-center py-3 text-muted small">No medicines match search query.</div>';
+                dropdown.style.display = 'block';
+            }
+        } catch (e) {
+            console.error("Autocomplete failed:", e);
+        }
+    });
+
+    // Close dropdown on click outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    // 2. Voice Search (HTML5 offline API)
+    function startHomeVoiceSearch() {
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!window.SpeechRecognition) {
+            alert("Your browser does not support Speech Recognition. Try Chrome.");
+            return;
+        }
+        
+        const recognition = new window.SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        
+        recognition.onstart = function() {
+            searchInput.placeholder = "Listening...";
+        };
+        
+        recognition.onend = function() {
+            searchInput.placeholder = "Search medicines, brands, ingredients...";
+        };
+        
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            searchInput.value = transcript;
+            // Trigger input event to fire autocomplete
+            searchInput.dispatchEvent(new Event('input'));
+        };
+        
+        recognition.start();
+    }
+</script>
 {% endblock %}

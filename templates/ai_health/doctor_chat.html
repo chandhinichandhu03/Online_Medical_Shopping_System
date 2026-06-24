@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+
+{% block title %}Dr. Llama - Local AI Doctor - MediCart{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Dark Theme Clinical Interface overrides */
+    .doctor-container {
+        background-color: #0b0f19;
+        border-radius: 24px;
+        border: 1px solid #1f2a44;
+        color: #e2e8f0;
+        overflow: hidden;
+    }
+    .doctor-sidebar {
+        background-color: #111827;
+        border-right: 1px solid #1f2a44;
+    }
+    .doctor-chat-area {
+        background-color: #0b0f19;
+        display: flex;
+        flex-direction: column;
+        height: 600px;
+    }
+    .chat-header {
+        background: linear-gradient(135deg, #0d9488, #0f766e);
+        color: white;
+    }
+    .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: radial-gradient(circle at top, #111827 0%, #0b0f19 100%);
+    }
+    .message-bubble {
+        max-width: 80%;
+        border-radius: 18px;
+        margin-bottom: 15px;
+        padding: 12px 18px;
+        font-size: 14px;
+        line-height: 1.5;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .message-user {
+        background-color: #0d9488;
+        color: white;
+        margin-left: auto;
+        border-bottom-right-radius: 2px;
+    }
+    .message-doctor {
+        background-color: #1f2937;
+        color: #f1f5f9;
+        border-bottom-left-radius: 2px;
+        border: 1px solid #374151;
+    }
+    .doctor-input-bar {
+        background-color: #111827;
+        border-top: 1px solid #1f2a44;
+        padding: 15px 20px;
+    }
+    .suggested-btn {
+        background-color: #1f2937;
+        color: #94a3b8;
+        border: 1px solid #374151;
+        border-radius: 50px;
+        padding: 6px 14px;
+        font-size: 12px;
+        transition: all 0.2s ease;
+    }
+    .suggested-btn:hover {
+        background-color: #0d9488;
+        color: white;
+        border-color: #0d9488;
+    }
+    /* Typing loader animation */
+    .typing-loader {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 14px;
+        background-color: #1f2937;
+        border-radius: 12px;
+        width: fit-content;
+    }
+    .typing-dot {
+        width: 6px;
+        height: 6px;
+        background-color: #94a3b8;
+        border-radius: 50%;
+        animation: typing 1.4s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes typing {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+    
+    .text-teal {
+        color: #0d9488;
+    }
+    .bg-teal-dark {
+        background-color: #115e59;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mb-5">
+    <div class="col-xl-10">
+        <div class="text-center mb-4">
+            <h1 class="display-6 fw-bold text-teal"><i class="fas fa-stethoscope me-2"></i>Dr. Llama - AI Clinical Consultant</h1>
+            <p class="text-muted">Fully offline medical RAG assistant powered by Llama3 / Mistral & ChromaDB.</p>
+        </div>
+
+        <div class="row doctor-container shadow-lg">
+            <!-- Sidebar Panel: Guidelines & Document Upload -->
+            <div class="col-md-4 p-4 doctor-sidebar">
+                <div class="mb-4">
+                    <h5 class="fw-bold text-teal mb-3"><i class="fas fa-file-medical me-2"></i>Analyze Medical Report</h5>
+                    <p class="small text-muted">Upload a blood test, urine analysis, or prescription PDF. Dr. Llama will extract the text, analyze values, and cross-reference store inventory.</p>
+                    
+                    <form method="post" enctype="multipart/form-data" id="reportForm" class="mt-3">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Select PDF or Image Report</label>
+                            <input type="file" name="report" class="form-control form-control-sm bg-dark text-light border-secondary" accept=".pdf,image/*" required>
+                        </div>
+                        <button type="submit" class="btn btn-teal btn-sm w-100 rounded-pill py-2" onclick="showLoader()">
+                            <i class="fas fa-upload me-2"></i>Process & Explain Report
+                        </button>
+                    </form>
+                </div>
+                
+                <hr style="border-color: #1f2a44;">
+                
+                <div>
+                    <h6 class="fw-bold text-teal mb-3"><i class="fas fa-shield-alt me-2"></i>Patient Safety Warnings</h6>
+                    <ul class="list-unstyled small text-muted">
+                        <li class="mb-2"><i class="fas fa-exclamation-triangle text-warning me-2"></i>Avoid taking Aspirin with Ibuprofen due to severe bleeding risks.</li>
+                        <li class="mb-2"><i class="fas fa-ban text-danger me-2"></i>Never mix Paracetamol with Alcohol.</li>
+                        <li class="mb-2"><i class="fas fa-info-circle text-info me-2"></i>Separate Calcium and Ciprofloxacin by at least 2 hours.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="col-md-8 p-0">
+                <div class="doctor-chat-area">
+                    <!-- Chat Header -->
+                    <div class="chat-header p-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user-md fa-2x me-3"></i>
+                            <div>
+                                <h6 class="mb-0 fw-bold">Dr. Llama, MD</h6>
+                                <small class="opacity-75"><i class="fas fa-circle text-success me-1 small"></i>Local Offline Generative RAG</small>
+                            </div>
+                        </div>
+                        <i class="fas fa-microchip fa-lg"></i>
+                    </div>
+
+                    <!-- Messages Box -->
+                    <div class="chat-messages" id="messagesBox">
+                        <div class="message-bubble message-doctor">
+                            Hello! I am Dr. Llama, your local RAG medical assistant. Tell me what symptoms you are experiencing, ask about drug dosages, side effects, or upload a medical PDF report for translation. How can I assist you today?
+                        </div>
+                        
+                        {% for chat in chat_history %}
+                        <div class="message-bubble message-user">
+                            {{ chat.user }}
+                        </div>
+                        <div class="message-bubble message-doctor">
+                            {{ chat.bot|safe }}
+                        </div>
+                        {% endfor %}
+                        
+                        {% if response %}
+                        <div class="message-bubble message-user">
+                            {{ user_message }}
+                        </div>
+                        <div class="message-bubble message-doctor">
+                            {{ response|safe }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Dynamic response loader -->
+                        <div class="message-bubble message-doctor" id="typingLoader" style="display: none;">
+                            <div class="typing-loader">
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Suggestions -->
+                    <div class="px-3 py-2 bg-dark d-flex gap-2 flex-wrap border-top" style="border-color: #1f2a44;">
+                        <button onclick="sendSuggested('What is the standard dose of Dolo 650?')" class="suggested-btn">Dolo 650 Dose?</button>
+                        <button onclick="sendSuggested('Is Ibuprofen safe during pregnancy?')" class="suggested-btn">Pregnancy & Ibuprofen</button>
+                        <button onclick="sendSuggested('First aid instructions for minor skin burns')" class="suggested-btn">First Aid: Burns</button>
+                        <button onclick="sendSuggested('Compare Ashwagandha and Multivitamins')" class="suggested-btn">Compare Supplements</button>
+                    </div>
+
+                    <!-- Input Bar -->
+                    <div class="doctor-input-bar">
+                        <form method="post" id="chatForm" onsubmit="handleChatSubmit(event)" class="d-flex gap-2">
+                            {% csrf_token %}
+                            <input type="text" name="message" id="messageInput" class="form-control bg-dark border-secondary text-light rounded-pill px-4" placeholder="Describe symptoms or ask about medicine safety..." required>
+                            
+                            <!-- Voice Input (Offline Speech-to-text) -->
+                            <button type="button" onclick="startVoiceInput()" id="voiceBtn" class="btn btn-outline-info rounded-circle d-flex align-items-center justify-content-center" style="width: 46px; height: 46px; border-color: #374151;">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            
+                            <button type="submit" class="btn btn-teal rounded-circle d-flex align-items-center justify-content-center" style="width: 46px; height: 46px; background-color: #0d9488; border: none; color: white;">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                        <div class="text-center mt-2">
+                            <small class="text-muted text-xs"><i class="fas fa-info-circle me-1"></i>Disclaimer: AI is not a substitute for a human doctor. Consult a physician for emergencies.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Scroll to bottom of chat
+    const box = document.getElementById('messagesBox');
+    box.scrollTop = box.scrollHeight;
+
+    function showLoader() {
+        document.getElementById('typingLoader').style.display = 'block';
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function handleChatSubmit(e) {
+        showLoader();
+    }
+
+    function sendSuggested(query) {
+        const input = document.getElementById('messageInput');
+        input.value = query;
+        showLoader();
+        document.getElementById('chatForm').submit();
+    }
+
+    // Voice to Text - Offline HTML5 Speech Recognition
+    let recognition;
+    function startVoiceInput() {
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!window.SpeechRecognition) {
+            alert("Your browser does not support Speech Recognition. Try Chrome or Safari.");
+            return;
+        }
+
+        const voiceBtn = document.getElementById('voiceBtn');
+        
+        if (recognition && recognition.active) {
+            recognition.stop();
+            return;
+        }
+
+        recognition = new window.SpeechRecognition();
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = function() {
+            voiceBtn.classList.remove('btn-outline-info');
+            voiceBtn.classList.add('btn-danger');
+            voiceBtn.innerHTML = '<i class="fas fa-microphone-slash animate-pulse"></i>';
+        };
+
+        recognition.onend = function() {
+            voiceBtn.classList.add('btn-outline-info');
+            voiceBtn.classList.remove('btn-danger');
+            voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        };
+
+        recognition.onresult = function(event) {
+            const resultText = event.results[0][0].transcript;
+            document.getElementById('messageInput').value = resultText;
+        };
+
+        recognition.onerror = function(event) {
+            console.error("Speech Recognition Error:", event.error);
+        };
+
+        recognition.start();
+    }
+</script>
+{% endblock %}

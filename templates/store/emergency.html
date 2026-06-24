@@ -55,23 +55,65 @@
     </div>
 </div>
 
+<style>
+    .emergency-card {
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+    }
+    body.dark-mode .emergency-card {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .emergency-card-header {
+        background: transparent !important;
+    }
+    .quick-chip {
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+    }
+    body.dark-mode .quick-chip {
+        border-color: rgba(255, 255, 255, 0.15);
+        color: #e2e8f0;
+    }
+    body.dark-mode .quick-chip:hover {
+        background-color: #0d9488;
+        border-color: #0d9488;
+        color: white;
+    }
+</style>
+
 <div class="row">
     <div class="col-12">
-        <div class="card border-0 shadow-lg">
-            <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center flex-wrap">
-                <h4 class="fw-bold mb-0 text-primary"><i class="fas fa-map-marked-alt me-2"></i>Nearby Medical Services
-                </h4>
-                <div class="input-group w-auto mt-2 mt-md-0">
-                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                    <input type="text" id="locationInput" class="form-control border-start-0"
-                        placeholder="Enter City/Area..." value="hospitals near me">
-                    <button class="btn btn-primary" onclick="updateMap()">Search</button>
+        <div class="card border-0 shadow-lg emergency-card">
+            <div class="card-header emergency-card-header border-0 pt-4 px-4 pb-2 d-flex justify-content-between align-items-center flex-wrap">
+                <h4 class="fw-bold mb-0 text-danger"><i class="fas fa-map-marked-alt me-2"></i>Nearby Medical Services Finder</h4>
+                <div class="input-group w-auto mt-2 mt-md-0 shadow-sm rounded-pill overflow-hidden">
+                    <span class="input-group-text bg-white dark-input-group-text border-end-0 px-3"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="locationInput" class="form-control border-start-0 py-2 px-3"
+                        placeholder="Enter City/Area (e.g. Manjoor, Ooty)..." value="hospitals near me"
+                        onkeydown="if(event.key === 'Enter') updateMap()">
+                    <button class="btn btn-danger px-4" onclick="updateMap()">Search</button>
                 </div>
             </div>
+            
+            <div class="px-4 pb-3">
+                <small class="text-muted">Enter any location, area, or specific query. If you specify search terms like "hospital" or "clinic", we will search exactly what you typed to get precise results. Otherwise, we will search for hospitals and pharmacies near that location.</small>
+            </div>
+            
+            <div class="px-4 pb-3 d-flex align-items-center flex-wrap gap-2">
+                <span class="small text-muted me-2"><i class="fas fa-tags me-1"></i>Quick Search:</span>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill quick-chip px-3" onclick="quickSearch('hospital near manjoor ooty')">Manjoor, Ooty</button>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill quick-chip px-3" onclick="quickSearch('hospitals in ooty')">Hospitals in Ooty</button>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill quick-chip px-3" onclick="quickSearch('24 hour pharmacies near me')">24h Pharmacies</button>
+                <button class="btn btn-sm btn-outline-secondary rounded-pill quick-chip px-3" onclick="quickSearch('hospitals near me')">Reset Near Me</button>
+            </div>
+
             <div class="card-body p-0">
-                <div class="ratio ratio-21x9">
+                <div class="ratio ratio-21x9" style="min-height: 400px;">
                     <iframe id="mapFrame"
-                        src="https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d248849.84916296515!2d77.46491763953535!3d12.95399748722741!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1shospitals%20and%20pharmacies%20near%20me!5e0!3m2!1sen!2sin!4v1706456789012!5m2!1sen!2sin"
+                        src="https://www.google.com/maps?q=hospitals+and+pharmacies+near+me&output=embed"
                         style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">
                     </iframe>
                 </div>
@@ -82,12 +124,28 @@
 
 <script>
     function updateMap() {
-        const query = document.getElementById('locationInput').value;
+        const inputVal = document.getElementById('locationInput').value.trim();
         const mapFrame = document.getElementById('mapFrame');
-        if (query) {
-            const newSrc = `https://www.google.com/maps?q=${encodeURIComponent(query + " hospitals pharmacies")}&output=embed`;
+        if (inputVal) {
+            const queryLower = inputVal.toLowerCase();
+            let finalQuery = inputVal;
+            
+            // Check if user already entered terms like hospital/pharmacy/clinic/doctor/medical
+            const hasMedicalKeywords = ['hospital', 'pharmacy', 'clinic', 'medical', 'doctor', 'chemist'].some(keyword => queryLower.includes(keyword));
+            
+            if (!hasMedicalKeywords) {
+                // If it's just a location (e.g. "Manjoor, Ooty"), query for hospitals and pharmacies near it
+                finalQuery = `hospitals and pharmacies near ${inputVal}`;
+            }
+            
+            const newSrc = `https://www.google.com/maps?q=${encodeURIComponent(finalQuery)}&output=embed`;
             mapFrame.src = newSrc;
         }
+    }
+
+    function quickSearch(term) {
+        document.getElementById('locationInput').value = term;
+        updateMap();
     }
 </script>
 {% endblock %}

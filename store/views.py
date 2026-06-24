@@ -69,6 +69,12 @@ def medicine_list(request):
     medicines = Medicine.objects.all()
     query = request.GET.get('q')
     category_id = request.GET.get('category')
+    price_min = request.GET.get('price_min')
+    price_max = request.GET.get('price_max')
+    brand = request.GET.get('brand')
+    in_stock = request.GET.get('in_stock')
+    rx = request.GET.get('rx')
+    rating_min = request.GET.get('rating_min')
     
     # Smart search with typo correction (difflib close match check)
     did_you_mean = None
@@ -98,6 +104,29 @@ def medicine_list(request):
     if category_id:
         medicines = medicines.filter(category_id=category_id)
         
+    if price_min:
+        medicines = medicines.filter(price__gte=price_min)
+        
+    if price_max:
+        medicines = medicines.filter(price__lte=price_max)
+        
+    if brand:
+        medicines = medicines.filter(brand_name__icontains=brand)
+        
+    if in_stock == '1':
+        medicines = medicines.filter(stock__gt=0)
+        
+    if rx == '1':
+        medicines = medicines.filter(is_prescription_required=True)
+    elif rx == '0':
+        medicines = medicines.filter(is_prescription_required=False)
+        
+    if rating_min:
+        medicines = medicines.filter(rating__gte=rating_min)
+        
+    # Get distinct brands for filter options
+    available_brands = Medicine.objects.values_list('brand_name', flat=True).distinct().order_by('brand_name')
+        
     # Apply dynamic pricing calculations for listing
     for med in medicines:
         med.price = apply_dynamic_pricing(med)
@@ -106,6 +135,7 @@ def medicine_list(request):
     return render(request, 'store/medicine_list.html', {
         'medicines': medicines,
         'categories': categories,
+        'brands': available_brands,
         'query': query,
         'did_you_mean': did_you_mean
     })
@@ -223,3 +253,34 @@ def subscribe_medicine(request, pk):
 def subscriptions_list(request):
     subscriptions = SubscriptionOrder.objects.filter(user=request.user)
     return render(request, 'store/subscriptions_list.html', {'subscriptions': subscriptions})
+
+from django.http import JsonResponse
+
+def search_autocomplete_api(request):
+    """
+    Returns instant matching autocomplete results as JSON.
+    """
+    query = request.GET.get('q', '').strip()
+    if not query or len(query) < 2:
+        return JsonResponse({'results': []})
+        
+    medicines = Medicine.objects.filter(
+        Q(name__icontains=query) |
+        Q(brand_name__icontains=query) |
+        Q(generic_name__icontains=query) |
+        Q(active_ingredient__icontains=query)
+    )[:6]
+    
+    results = []
+    for m in medicines:
+        results.append({
+            'id': m.id,
+            'name': m.name,
+            'brand': m.brand_name,
+            'category': m.category.name,
+            'price': float(m.price),
+            'image': m.image.url if m.image else ''
+        })
+        
+    return JsonResponse({'results': results})
+

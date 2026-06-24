@@ -63,6 +63,53 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <!-- Secondary Payment System Stats -->
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-success-subtle text-success p-3" style="border-radius:12px;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="small text-uppercase fw-bold">Success Payments</span>
+                    <h4 class="fw-bold mb-0 mt-1">{{ successful_payments }}</h4>
+                </div>
+                <i class="fas fa-check-circle fa-2x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-danger-subtle text-danger p-3" style="border-radius:12px;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="small text-uppercase fw-bold">Failed Payments</span>
+                    <h4 class="fw-bold mb-0 mt-1">{{ failed_payments }}</h4>
+                </div>
+                <i class="fas fa-times-circle fa-2x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-warning-subtle text-warning p-3" style="border-radius:12px;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="small text-uppercase fw-bold">Refund Requests</span>
+                    <h4 class="fw-bold mb-0 mt-1">{{ refund_requests }}</h4>
+                </div>
+                <i class="fas fa-undo fa-2x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 bg-info-subtle text-info p-3" style="border-radius:12px;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="small text-uppercase fw-bold">Pending Payments</span>
+                    <h4 class="fw-bold mb-0 mt-1">{{ pending_payments }}</h4>
+                </div>
+                <i class="fas fa-hourglass-half fa-2x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+
 <!-- Fraud Anomaly Warning Alert -->
 {% if anomalous_orders %}
 <div class="alert alert-danger border-0 shadow-sm rounded-3 d-flex align-items-center mb-4" role="alert">
@@ -177,6 +224,97 @@
                             {% empty %}
                             <tr>
                                 <td colspan="4" class="text-center py-4 text-muted">No medicines nearing expiry (within 30 days).</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Order and Refund Management Panel Ledger -->
+    <div class="col-12">
+        <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0"><i class="fas fa-tasks text-primary me-2"></i>Order & Payment Management Ledger</h5>
+                <span class="badge bg-primary px-3 py-1 rounded-pill">Total Transactions: {{ total_orders }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order Details</th>
+                                <th>Recipient & Address</th>
+                                <th>Payment Details</th>
+                                <th>Shipment Tracker State</th>
+                                <th>Refund Requests Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>
+                                    <div class="text-start ps-3">
+                                        <span class="fw-bold text-dark d-block">Order #{{ order.id }}</span>
+                                        <small class="text-muted d-block"><i class="far fa-calendar-alt me-1"></i>{{ order.created_at|date:"M d, Y H:i" }}</small>
+                                        <span class="font-monospace text-xs text-muted" style="font-size:0.75rem;">Total: ₹{{ order.total_amount }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-start">
+                                        <span class="fw-bold d-block">{{ order.full_name|default:order.user.username }}</span>
+                                        <small class="text-muted text-xs d-block text-truncate" style="max-width:200px;" title="{{ order.address }}">{{ order.address|default:order.street_address }}</small>
+                                        <small class="text-muted text-xs d-block">Phone: {{ order.mobile_number }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-start">
+                                        <span class="badge bg-secondary-subtle text-secondary small d-block mb-1" style="max-width:100px;">Method: {{ order.payment_method }}</span>
+                                        
+                                        {% if order.payment_status == 'Successful' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2"><i class="fas fa-check-circle me-1"></i>Successful</span>
+                                        {% elif order.payment_status == 'Failed' %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2"><i class="fas fa-times-circle me-1"></i>Failed</span>
+                                        {% else %}
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2"><i class="fas fa-hourglass-half me-1"></i>Pending</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    <!-- Status Update selector form -->
+                                    <form method="post" action="{% url 'update_status_admin' order.id %}" class="d-flex align-items-center gap-1 justify-content-center">
+                                        {% csrf_token %}
+                                        <select name="status" class="form-select form-select-sm rounded-pill" style="max-width:150px; font-size:0.8rem;">
+                                            {% for choice in order.STATUS_CHOICES %}
+                                            <option value="{{ choice.0 }}" {% if choice.0 == order.status %}selected{% endif %}>{{ choice.1 }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-primary rounded-circle" style="width:28px; height:28px; padding:0;" title="Update Status"><i class="fas fa-save text-xs"></i></button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <!-- Refund controls -->
+                                    {% if order.refund_status == 'Refund Pending' %}
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a href="{% url 'process_refund_admin' order.id 'approve' %}" class="btn btn-xs btn-success rounded-pill px-2 py-1 text-xs"><i class="fas fa-check me-1"></i>Approve</a>
+                                        <a href="{% url 'process_refund_admin' order.id 'reject' %}" class="btn btn-xs btn-danger rounded-pill px-2 py-1 text-xs"><i class="fas fa-ban me-1"></i>Reject</a>
+                                    </div>
+                                    {% elif order.refund_status == 'Refunded' %}
+                                    <span class="badge bg-danger rounded-pill px-2"><i class="fas fa-check-double me-1"></i>Refund Approved</span>
+                                    {% elif order.refund_status == 'Refund Rejected' %}
+                                    <span class="badge bg-secondary rounded-pill px-2"><i class="fas fa-ban me-1"></i>Refund Rejected</span>
+                                    {% else %}
+                                    <span class="text-muted text-xs font-normal">No request</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No transactions registered yet.</td>
                             </tr>
                             {% endfor %}
                         </tbody>

@@ -2,10 +2,84 @@
 {% block title %}Delivery Route Optimizer - MediCart{% endblock %}
 
 {% block content %}
+<style>
+    .track-step {
+        flex: 1;
+        position: relative;
+    }
+    .track-dot {
+        width: 34px !important;
+        height: 34px !important;
+        background: #f1f5f9 !important;
+        border-color: #cbd5e1 !important;
+        color: #64748b;
+        box-shadow: 0 0 0 4px white;
+        z-index: 10;
+        position: relative;
+    }
+    body.dark-mode .track-dot {
+        background: #1e293b !important;
+        border-color: #475569 !important;
+        color: #94a3b8;
+        box-shadow: 0 0 0 4px #0f172a;
+    }
+    .track-step .small {
+        transition: color 0.3s ease;
+    }
+</style>
+
 <div class="container py-4">
-    <div class="text-center mb-5">
-        <h1 class="display-6 fw-bold text-primary"><i class="fas fa-route me-2"></i>Delivery Route Optimization</h1>
-        <p class="lead text-muted">Real-time route pathfinding solver. Dijkstra's algorithm computes the shortest transit path from the warehouse to your location.</p>
+    <div class="text-center mb-4">
+        <h1 class="display-6 fw-bold text-primary"><i class="fas fa-route me-2"></i>Order Transit Tracker</h1>
+        <p class="lead text-muted">View order dispatch steps and solve delivery routes in real time.</p>
+    </div>
+
+    <!-- Timeline Stepper Banner -->
+    <div class="row mb-4 justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow border-0 p-4" style="border-radius:20px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-0">Tracking: <span class="text-primary font-monospace">{{ order.tracking_number|default:"TRK-PENDING" }}</span></h5>
+                        <p class="small text-muted mb-0">Delivery Agent: <strong>{{ order.delivery_agent_name }}</strong></p>
+                    </div>
+                    <div class="text-md-end">
+                        <span class="badge bg-success py-2 px-3 rounded-pill fs-6">{{ order.status }}</span>
+                        <p class="small text-muted mt-1 mb-0">Est. Arrival: <strong>{{ order.estimated_delivery_date }}</strong></p>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between position-relative py-3 flex-wrap flex-md-nowrap gap-4 gap-md-0" style="margin-bottom: 0.5rem;">
+                    <div class="position-absolute d-none d-md-block" style="top:50%; left:8%; right:8%; height:4px; background:#e2e8f0; z-index:1; transform:translateY(-50%);"></div>
+                    <div class="position-absolute d-none d-md-block" id="trackingProgressBar" style="top:50%; left:8%; height:4px; background:#0d9488; z-index:1; transform:translateY(-50%); transition:width 0.5s ease; width:0%;"></div>
+                    
+                    <div class="track-step text-center" id="tstep-Placed">
+                        <div class="track-dot mx-auto mb-2 border rounded-circle d-flex align-items-center justify-content-center"><i class="fas fa-file-invoice small"></i></div>
+                        <div class="small fw-bold text-muted">Order Placed</div>
+                    </div>
+                    <div class="track-step text-center" id="tstep-Confirmed">
+                        <div class="track-dot mx-auto mb-2 border rounded-circle d-flex align-items-center justify-content-center"><i class="fas fa-check small"></i></div>
+                        <div class="small fw-bold text-muted">Payment Confirmed</div>
+                    </div>
+                    <div class="track-step text-center" id="tstep-Packed">
+                        <div class="track-dot mx-auto mb-2 border rounded-circle d-flex align-items-center justify-content-center"><i class="fas fa-box small"></i></div>
+                        <div class="small fw-bold text-muted">Packed</div>
+                    </div>
+                    <div class="track-step text-center" id="tstep-Shipped">
+                        <div class="track-dot mx-auto mb-2 border rounded-circle d-flex align-items-center justify-content-center"><i class="fas fa-shipping-fast small"></i></div>
+                        <div class="small fw-bold text-muted">Shipped</div>
+                    </div>
+                    <div class="track-step text-center" id="tstep-Out">
+                        <div class="track-dot mx-auto mb-2 border rounded-circle d-flex align-items-center justify-content-center"><i class="fas fa-truck small"></i></div>
+                        <div class="small fw-bold text-muted">Out for Delivery</div>
+                    </div>
+                    <div class="track-step text-center" id="tstep-Delivered">
+                        <div class="track-dot mx-auto mb-2 border rounded-circle d-flex align-items-center justify-content-center"><i class="fas fa-home small"></i></div>
+                        <div class="small fw-bold text-muted">Delivered</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row g-4 justify-content-center">
@@ -270,7 +344,48 @@
         animate();
     }
     
-    // Init
+    // Highlight step dots according to database order status
+    const statusMap = {
+        'Order Placed': 0,
+        'Pending': 0,
+        'Approved': 1,
+        'Payment Confirmed': 1,
+        'Packed': 2,
+        'Shipped': 3,
+        'Out for Delivery': 4,
+        'Delivered': 5
+    };
+    const currentStatus = "{{ order.status }}";
+    const statusIndex = statusMap[currentStatus] !== undefined ? statusMap[currentStatus] : 0;
+    
+    const steps = ['Placed', 'Confirmed', 'Packed', 'Shipped', 'Out', 'Delivered'];
+    for (let i = 0; i <= statusIndex; i++) {
+        const stepName = steps[i];
+        const stepDiv = document.getElementById(`tstep-${stepName}`);
+        if (stepDiv) {
+            const dot = stepDiv.querySelector('.track-dot');
+            if (dot) {
+                dot.style.borderColor = '#0d9488';
+                dot.style.background = '#0d9488';
+                dot.style.color = 'white';
+                dot.style.setProperty('background-color', '#0d9488', 'important');
+            }
+            const label = stepDiv.querySelector('.small');
+            if (label) {
+                label.style.color = '#0d9488';
+                label.classList.remove('text-muted');
+                label.classList.add('text-primary');
+            }
+        }
+    }
+    
+    const trackBar = document.getElementById('trackingProgressBar');
+    if (trackBar) {
+        const percent = (statusIndex / 5) * 84;
+        trackBar.style.width = `${percent}%`;
+    }
+
+    // Init Dijkstra Solver
     setTimeout(resize, 100);
 </script>
 {% endblock %}

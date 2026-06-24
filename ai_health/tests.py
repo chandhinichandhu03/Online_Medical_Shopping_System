@@ -3,6 +3,8 @@ from django.urls import reverse
 from store.models import Medicine, Category, DrugInteraction
 from ai_health.views import markdown_to_html, local_chat_fallback
 import datetime
+import json
+from unittest.mock import patch, MagicMock
 
 class AIHealthViewsTestCase(TestCase):
     def setUp(self):
@@ -82,7 +84,21 @@ class AIHealthViewsTestCase(TestCase):
         self.assertIn("We currently stock", response)
         self.assertNotIn("drug safety/interactions", response)
 
-    def test_symptom_checker_fallback(self):
+    @patch('ai_health.views.search_similar_documents')
+    @patch('ai_health.views.query_local_ollama')
+    def test_symptom_checker_ai_success(self, mock_query, mock_search):
+        # Test case where Ollama runs and successfully returns a valid JSON response
+        mock_search.return_value = []
+        mock_query.return_value = json.dumps({
+            "conditions": ["Upper Respiratory Tract Infection (Common Cold)"],
+            "advice": ["Keep throat hydrated by sipping warm water throughout the day.", "Inhale steam with eucalyptus oil twice daily."],
+            "remedies": ["Mix honey, ginger juice, and black pepper, and consume 1 teaspoon."],
+            "medicines": [
+                {"name": "Benadryl Syrup", "reason": "Soothing dry cough"},
+                {"name": "Cofsils Syrup", "reason": "Relief for dry cough"}
+            ]
+        })
+
         response = self.client.post(reverse('symptom_checker'), {
             'age': 30,
             'gender': 'male',
@@ -90,7 +106,45 @@ class AIHealthViewsTestCase(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Upper Respiratory Tract Infection (Common Cold)")
-        # Check that advice and remedies are rendered without "{{ tip }}" placeholders
         self.assertContains(response, "Keep throat hydrated")
         self.assertNotContains(response, "{{ tip }}")
         self.assertNotContains(response, "{{ item }}")
+
+    @patch('ai_health.views.search_similar_documents')
+    @patch('ai_health.views.query_local_ollama')
+    def test_symptom_checker_fallback(self, mock_query, mock_search):
+        # Test case where Ollama fails/is offline and system falls back to rule-based symptom analyzer
+        mock_search.return_value = []
+        mock_query.return_value = "Error connecting to local Ollama server: Connection refused"
+
+        response = self.client.post(reverse('symptom_checker'), {
+            'age': 30,
+            'gender': 'male',
+            'symptoms': 'I have a bad cough and cold'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Upper Respiratory Tract Infection (Common Cold)")
+        self.assertContains(response, "Keep throat hydrated")
+        self.assertNotContains(response, "{{ tip }}")
+        self.assertNotContains(response, "{{ item }}")
+
+    def test_doctor_chat_get(self):
+        # Verify doctor chat view loads correctly
+        response = self.client.get(reverse('doctor_chat'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Dr. Llama")
+
+    @patch('ai_health.views.search_similar_documents')
+    @patch('ai_health.views.query_local_ollama')
+    def test_doctor_chat_post_message(self, mock_query, mock_search):
+        # Mock search results and Ollama output to avoid live local REST calls
+        mock_search.return_value = []
+        mock_query.return_value = "As a clinical AI assistant, I recommend taking Paracetamol as prescribed."
+
+        response = self.client.post(reverse('doctor_chat'), {
+            'message': 'What is the correct dose of Paracetamol?'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Dr. Llama")
+        self.assertContains(response, "recommend taking Paracetamol")
+

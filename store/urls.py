@@ -15,4 +15,5 @@ urlpatterns = [
     path('interactions/', views.drug_interactions_network, name='drug_interactions_network'),
     path('subscribe/<int:pk>/', views.subscribe_medicine, name='subscribe_medicine'),
     path('subscriptions/', views.subscriptions_list, name='subscriptions_list'),
+    path('api/search/', views.search_autocomplete_api, name='search_autocomplete_api'),
 ]

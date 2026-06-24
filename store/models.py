@@ -27,6 +27,11 @@ class Medicine(models.Model):
     image = models.ImageField(upload_to='medicines/', blank=True, null=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     original_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.0) # Base price before dynamic pricing
+    discount_percent = models.PositiveIntegerField(default=0)
+    is_featured = models.BooleanField(default=False)
+    rating = models.FloatField(default=4.0)
+    review_count = models.PositiveIntegerField(default=0)
+    medicine_type = models.CharField(max_length=20, default="tablet")
     stock = models.PositiveIntegerField(default=0)
     expiry_date = models.DateField()
     manufactured_date = models.DateField(default=datetime.date.today)

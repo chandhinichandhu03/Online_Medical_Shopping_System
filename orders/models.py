@@ -27,19 +27,48 @@ class CartItem(models.Model):
 
 class Order(models.Model):
     STATUS_CHOICES = (
-        ('Pending', 'Pending'),
-        ('Approved', 'Approved'),
+        ('Order Placed', 'Order Placed'),
+        ('Payment Confirmed', 'Payment Confirmed'),
+        ('Packed', 'Packed'),
         ('Shipped', 'Shipped'),
+        ('Out for Delivery', 'Out for Delivery'),
         ('Delivered', 'Delivered'),
         ('Cancelled', 'Cancelled'),
     )
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    address = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    address = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='Order Placed')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     prescription_image = models.ImageField(upload_to='prescriptions/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
+    # Billing/Shipping Details
+    full_name = models.CharField(max_length=100, default="")
+    mobile_number = models.CharField(max_length=15, default="")
+    email = models.EmailField(default="")
+    house_number = models.CharField(max_length=50, default="")
+    street_address = models.CharField(max_length=255, default="")
+    city = models.CharField(max_length=100, default="")
+    state = models.CharField(max_length=100, default="")
+    pincode = models.CharField(max_length=10, default="")
+    landmark = models.CharField(max_length=100, blank=True, default="")
+    
+    # Delivery & Cost Details
+    delivery_option = models.CharField(max_length=50, default="Standard") # Standard, Express, Same Day
+    delivery_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
+    # Payment & Security Details
+    payment_method = models.CharField(max_length=50, default="COD") # UPI, Card, Net Banking, Wallet, COD
+    payment_status = models.CharField(max_length=20, default="Pending") # Pending, Successful, Failed, Refunded
+    transaction_id = models.CharField(max_length=100, blank=True, default="")
+    invoice_number = models.CharField(max_length=100, blank=True, default="")
+    tracking_number = models.CharField(max_length=100, blank=True, default="")
+    estimated_delivery_date = models.DateField(null=True, blank=True)
+    delivery_agent_name = models.CharField(max_length=100, blank=True, default="Rahul Sharma")
+    refund_status = models.CharField(max_length=50, default="No Refund") # No Refund, Refund Pending, Refunded, Refund Rejected
+
     def __str__(self):
         return f"Order #{self.id} - {self.user.username}"
 
