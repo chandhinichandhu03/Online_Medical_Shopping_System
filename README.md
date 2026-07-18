@@ -131,3 +131,11 @@ if __name__ == '__main__':
     run()
 ```
 
+
+
+run code in terminal 
+
+py run.py
+
+paste the below link in browser after runnig above code in terminal
+http://127.0.0.1:8000

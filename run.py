@@ -33,7 +33,7 @@ def run():
     if os.path.exists('requirements.txt'):
         print("Installing requirements from requirements.txt...")
         try:
-            subprocess.run([pip_path, 'install', '--upgrade', 'pip'], check=True)
+            subprocess.run([python_path, '-m', 'pip', 'install', '--upgrade', 'pip'], check=True)
             subprocess.run([pip_path, 'install', '-r', 'requirements.txt'], check=True)
             print("Dependencies installed successfully.")
         except Exception as e:
